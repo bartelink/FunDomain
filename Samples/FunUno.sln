@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunUno", "FunUno\FunUno.fsproj", "{4EE8261C-4629-4B28-A141-9C210C5235A9}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunUno.Tests", "FunUno.Tests\FunUno.Tests.fsproj", "{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4EE8261C-4629-4B28-A141-9C210C5235A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EE8261C-4629-4B28-A141-9C210C5235A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EE8261C-4629-4B28-A141-9C210C5235A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EE8261C-4629-4B28-A141-9C210C5235A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
