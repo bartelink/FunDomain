@@ -1,13 +1,14 @@
 ﻿module FunUno.Tests.``When playing a second turn``
 
 open FunUno.UnoGame
+open FunUno.UnoGame.Events
 
 open Swensen.Unquote
 open Xunit
 open System
 
 let context = [   
-    GameStarted {GameId=1; PlayerCount=4; FirstCard=Digit(3, Red)}
+    GameStarted {GameId=1; PlayerCount=4; TopCard=Digit(3, Red)}
     CardPlayed  {GameId=1; Player=0; Card=Digit(9, Red)} ]
 
 let [<Fact>] ``Same color should be accepted`` () =
@@ -33,7 +34,7 @@ let [<Fact>] ``First player should play at his turn``() =
     |> raises<InvalidOperationException>
 
 let [<Fact>] ``After a full round it should be player 0 turn``() =
-    <@ replay [ GameStarted {GameId=1; PlayerCount=4; FirstCard= Digit(3, Red)} 
+    <@ replay [ GameStarted {GameId=1; PlayerCount=4; TopCard= Digit(3, Red)} 
                 CardPlayed {GameId=1; Player=0; Card=Digit(9, Red)}
                 CardPlayed {GameId=1; Player=1; Card=Digit(8, Red)}
                 CardPlayed {GameId=1; Player=2; Card=Digit(6, Red)}

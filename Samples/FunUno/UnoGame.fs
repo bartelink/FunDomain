@@ -1,78 +1,72 @@
 ﻿namespace FunUno
 
 module UnoGame =
-    type Color = 
+    module Events =
+        type Color = 
         | Red
         | Green
         | Blue
         | Yellow
 
-    type Card =
+        type Card =
         | Digit of int * Color
-        | KickBack of Color
 
-    type Direction =
-        | ClockWise
-        | CounterClockWise
+        type GameStartedEvent = {GameId: int; PlayerCount:int; TopCard: Card}
+        type CardPlayedEvent = {GameId: int; Player:int; Card: Card}
 
-    type Turn = (*player*)int * (*playerCount*)int
+    type Event =
+    | GameStarted   of Events.GameStartedEvent
+    | CardPlayed    of Events.CardPlayedEvent
 
-    [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
-    module Turn =
-        let empty = (0,1)
-        let start count = (0, count)
-        let next (player, count) = (player + 1) % count, count
-        let isNot p (current, _) = p <> current
+    type Turn = { Player:int; Of:int } with
+        member this.next () = {this with Player = (this.Player + 1) % this.Of}
+        member this.isNot player = this.Player <> player 
+        static member empty = {Player=0; Of=0}
+        static member start count = {Player=0; Of=count}
 
     type State = {
-        GameAlreadyStarted: bool
-        Player: Turn
-        TopCard: Card }
+        GameInProgress: bool
+        Turn: Turn
+        TopCard: Events.Card }
 
-    let empty = {
-        State.GameAlreadyStarted = false
-        Player = Turn.empty
-        TopCard = Digit(0,Red) }
+    let replay = 
+        let empty = {
+            State.GameInProgress = false
+            Turn = Turn.empty
+            TopCard = Events.Digit(0, Events.Red) }
 
-    type GameStartedEvent = {GameId: int; PlayerCount:int; FirstCard: Card}
-    type CardPlayedEvent = {GameId: int; Player:int; Card: Card}
-    type Event =
-        | GameStarted   of GameStartedEvent
-        | CardPlayed    of CardPlayedEvent
+        let apply state = function
+            | GameStarted {PlayerCount=playerCount; TopCard=topCard} -> 
+                { GameInProgress = true
+                  Turn = Turn.start playerCount
+                  TopCard = topCard }
+            | CardPlayed {Card=card} ->
+                { state with
+                    Turn = state.Turn.next()
+                    TopCard = card }
 
-    let apply state = function
-        | GameStarted {PlayerCount=playerCount; FirstCard=firstCard} -> 
-            { GameAlreadyStarted = true
-              Player = Turn.start playerCount
-              TopCard = firstCard }
-        | CardPlayed {Card=card} ->
-            { state with
-                Player = state.Player |> Turn.next 
-                TopCard = card }
+        List.fold apply empty
 
-    let replay events = List.fold apply empty events
-
-    type StartGameCommand = { GameId: int; PlayerCount: int; FirstCard: Card}
-    let startGame command state =
-        if command.PlayerCount <= 2 then invalidArg "playerCount" "You should be at least 3 players"
-        if state.GameAlreadyStarted then invalidOp "You cannot start game twice"
-
-        [ GameStarted {GameId=command.GameId; PlayerCount=command.PlayerCount; FirstCard=command.FirstCard} ]
-
-    type PlayCardCommand = { GameId: int; Player: int; Card: Card}
-    let playCard command (state:State) =
-        if state.Player |> Turn.isNot (command.Player) then invalidOp "Player should play at his turn"
-
-        match command.Card, state.TopCard with
-        | Digit(n1, color1), Digit(n2, color2) when n1 = n2 || color1 = color2 ->
-            [ CardPlayed { GameId = command.GameId; Player=command.Player; Card=command.Card }]
-        | _ -> invalidOp "Play same color or same value !"
+    module Commands =
+        type StartGameCommand   = { GameId: int; PlayerCount: int; TopCard: Events.Card} 
+        type PlayCardCommand    = { GameId: int; Player: int; Card: Events.Card}
 
     type Command =
-        | StartGame         of StartGameCommand
-        | PlayCard          of PlayCardCommand
+    | StartGame of Commands.StartGameCommand
+    | PlayCard  of Commands.PlayCardCommand
 
-    let handle =
-        function
-        | StartGame(cmd)    -> startGame cmd
-        | PlayCard(cmd)     -> playCard cmd
+    let handle command state = 
+        match command with
+        | StartGame { GameId=gameId; PlayerCount=players; TopCard=top}  -> 
+            if players <= 2 then invalidArg "playerCount" "You should be at least 3 players"
+            if state.GameInProgress then invalidOp "You cannot start game twice"
+
+            [ GameStarted {GameId=gameId; PlayerCount=players; TopCard=top} ]
+
+        | PlayCard { GameId=gameId; Player=player; Card=card} ->
+            if state.Turn.isNot player then invalidOp "Player should play at his turn"
+
+            match card, state.TopCard with
+            | Events.Digit(n1, color1), Events.Digit(n2, color2) when n1 = n2 || color1 = color2 ->
+                [ CardPlayed { GameId = gameId; Player=player; Card=card }]
+            | _ -> invalidOp "Play same color or same value !"

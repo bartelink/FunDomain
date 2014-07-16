@@ -1,12 +1,13 @@
 ﻿module FunUno.Tests.``When playing card``
 
 open FunUno.UnoGame
+open FunUno.UnoGame.Events
 
 open Swensen.Unquote
 open Xunit
 open System
 
-let context = [ GameStarted {GameId=1; PlayerCount=4; FirstCard=Digit(3, Red)} ]
+let context = [ GameStarted {GameId=1; PlayerCount=4; TopCard=Digit(3, Red)} ]
 
 let [<Fact>] ``Same color should be accepted`` () =
     <@ replay context
