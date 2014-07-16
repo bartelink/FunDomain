@@ -88,31 +88,3 @@ let createInMsSqlWithPerfCounters (connectionString:string) perfCounterSetName =
         .UsingJsonSerialization()
             .Compress()
         .Build()
-
-//type NullSerializer() =
-//    interface ISerialize with
-//        member this.Serialize<'T> (output,graph:'T)  =
-//            let indicatedType = typeof<'T>
-//            match box graph with 
-//            | :? List<EventMessage> as evnts when indicatedType = typeof<List<EventMessage>> ->
-//                let it = evnts |> Seq.exactlyOne
-//                let buffer : byte[] = downcast it.Body
-//                output.Write( buffer, 0, buffer.Length)
-//            | :? Dictionary<string,obj> as headers when indicatedType = typeof<Dictionary<string,obj>> && headers.Count = 0 -> 
-//                ()
-//            | _ -> invalidOp "not implemented"
-//        member this.Deserialize<'T> input =
-//            let targetType = typeof<'T>
-//            let result =  
-//                if targetType = typeof<List<EventMessage>> then 
-//                    use ms = new MemoryStream()
-//                    input.CopyTo ms
-//                    let list = List<EventMessage>(capacity=1)
-//                    list.Add <| EventMessage(Body=ms.ToArray())
-//                    list |> box 
-//                elif targetType = typeof<Dictionary<string,obj>> then 
-//                    let empty = Dictionary<string,obj>() 
-//                    empty |> box
-//                else 
-//                    invalidOp <| sprintf "Unknown type %s" targetType.FullName
-//            result :?> 'T

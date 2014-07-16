@@ -1,4 +1,4 @@
-﻿module FunDomain.Serialization
+﻿module FunDomain.Persistence.Serialization
 
 // This module provides Json serialization to store
 // events in the event store 

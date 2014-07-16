@@ -10,7 +10,7 @@ open FunDomain.Persistence
 open Xunit
 open System
 
-let [<Fact>] ``Full Game In Memory`` () =
+let [<Fact>] ``Full Game with NES using InMemoryPersistence`` () =
     let store = NesStore.createInMemory()
 
     let gameId = 42

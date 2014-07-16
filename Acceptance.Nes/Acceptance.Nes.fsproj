@@ -51,7 +51,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
-    <Compile Include="Scenarios.fs" />
+    <Compile Include="InMemoryStore.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FunDomain.Persistence.Nes\FunDomain.Persistence.Nes.fsproj">
