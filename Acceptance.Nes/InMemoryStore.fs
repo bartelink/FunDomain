@@ -1,14 +1,12 @@
 ﻿module Scenarios
 
-open FunUno
-open FunUno.UnoGame
-open FunUno.UnoGame.Events
+open FunUno.UnoGame // Commands, replay, handle
+open FunUno.UnoGame.Events // Digit
 
 open FunDomain // CommandHandler
-open FunDomain.Persistence.NEventStore // NesStore
+open FunDomain.Persistence.NEventStore.NesGateway // createInMemory, StreamId
 
 open Xunit
-open System
 
 let fullGameActions gameId = [
     StartGame { GameId=gameId; PlayerCount=4; TopCard=Digit(3, Red) }
@@ -18,16 +16,17 @@ let fullGameActions gameId = [
     PlayCard  { GameId=gameId; Player=3; Card=Digit(4, Yellow) }
     PlayCard  { GameId=gameId; Player=0; Card=Digit(4, Green) } ]
 
+let streamId gameId = {Bucket=None; StreamId=gameId |> string}
+
 let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` () =
+    let domainHandler = CommandHandler.create replay handle 
+
+    let store = createInMemory()
+    let persistingHandler = domainHandler store.read store.append 
+
     let gameId = 42
-
-    let unoGameHandler = CommandHandler.create UnoGame.replay UnoGame.handle 
-
-    let store = NesGateway.createInMemory()
-
-    let bucket = "default"
-    let streamId = bucket,string gameId
+    let stream = streamId gameId
 
     for action in fullGameActions gameId do 
-        printfn "%A" action
-        action |> unoGameHandler store.read store.append streamId
+        printfn "Processing %A against Stream %A" action stream
+        action |> persistingHandler stream

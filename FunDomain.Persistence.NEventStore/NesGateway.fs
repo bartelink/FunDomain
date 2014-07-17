@@ -9,15 +9,19 @@ open NEventStore.Persistence.Sql.SqlDialects
 open System
 open System.Collections.Generic
 
-/// Opaque token yielded by NesStreamer.read and consumed by NesStreamer.append
-type NesToken = { CommitSequence : int; StreamRevision : int}
+/// Opaque token yielded by Streamer.read and consumed by Streamer.append
+type Token = { CommitSequence : int; StreamRevision : int}
 
-/// Wrapper class yielded by NesStore.create* functions with create/append functions matching FunDomain.CommandHandler requirements
-type NesStreamer private (inner') = 
+/// Identifier of a stream in NEventStore
+type StreamId = { Bucket: string option; StreamId: string}
+
+/// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
+type Streamer private (inner') = 
     // Hoop jumping a la C++ pimpl pattern - if we don't do this, we're foisting an NEventStore package reference on all downstream users
     let inner : IPersistStreams = unbox inner'
-    let load (bucketId,streamId) minRevision maxRevision =
-        inner.GetFrom(bucketId, streamId, minRevision, maxRevision) 
+    let defaultBucket bucketId = defaultArg bucketId "default"
+    let load {Bucket=bucketId; StreamId=streamId} minRevision maxRevision =
+        inner.GetFrom(bucketId |> defaultBucket, streamId, minRevision, maxRevision) 
     let commit = inner.Commit >> ignore
     let readStream streamId startIndex count =
         let minRevision,maxRevision = startIndex,startIndex+count-1
@@ -43,7 +47,7 @@ type NesStreamer private (inner') =
 
             return events, tokenOption, None }
 
-    let appendToStream (bucketId,streamId) streamMeta token events =
+    let appendToStream {Bucket=bucketId; StreamId=streamId} streamMeta token events =
         let commitId,commitStamp,commitHeaders = streamMeta
         async {
             let eventMessages = 
@@ -57,7 +61,7 @@ type NesStreamer private (inner') =
             let updatedCommitSequence=token |> Option.map (fun token -> token.CommitSequence+1) 
             let attempt = 
                 CommitAttempt(
-                    bucketId, streamId, 
+                    bucketId |> defaultBucket, streamId, 
                     updatedStreamRevision |> defaultArg <| 1, 
                     commitId, 
                     updatedCommitSequence |> defaultArg <| 1, 
@@ -66,26 +70,26 @@ type NesStreamer private (inner') =
                     eventMessages)
             commit attempt}
 
-    static member internal wrap persister = NesStreamer( box persister)
+    static member internal wrap persister = Streamer( box persister)
 
-    member this.read streamId = 
+    member this.read stream = 
         let events,version,_ = 
-            readStream streamId 0 Int32.MaxValue 
+            readStream stream 0 Int32.MaxValue 
             |> Async.RunSynchronously
         version,events
 
-    member this.append streamId token events = 
+    member this.append stream token events = 
         let commitMetadata() =
             let commitId = Guid.NewGuid() 
             let commitDateTime = DateTime.UtcNow
             let commitHeaders = null
             commitId,commitDateTime,commitHeaders
         let metadata = commitMetadata() 
-        appendToStream streamId metadata token events
+        appendToStream stream metadata token events
         |> Async.RunSynchronously
 
 let createFromStore (inner:IStoreEvents) = 
-    inner.Advanced |> NesStreamer.wrap
+    inner.Advanced |> Streamer.wrap
 
 let createInMemory () = 
     Wireup.Init()
