@@ -7,7 +7,7 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunUno", "Samples\FunUno\Fu
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunUno.Tests", "Samples\FunUno.Tests\FunUno.Tests.fsproj", "{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.Nes", "FunDomain.Persistence.Nes\FunDomain.Persistence.Nes.fsproj", "{7A26B0DC-7834-497A-9E88-91D1FC15E10B}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.NEventStore", "FunDomain.Persistence.NEventStore\FunDomain.Persistence.NEventStore.fsproj", "{7A26B0DC-7834-497A-9E88-91D1FC15E10B}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Acceptance.Nes", "Acceptance.Nes\Acceptance.Nes.fsproj", "{483336F5-083A-49C1-AE4B-A3E7DDCD3E60}"
 EndProject
