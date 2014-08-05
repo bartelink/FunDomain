@@ -61,11 +61,11 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="NEventStore">
-      <HintPath>..\FunDomain\packages\NEventStore.5.0.1.2\lib\net40\NEventStore.dll</HintPath>
+      <HintPath>..\packages\NEventStore.5.0.1.2\lib\net40\NEventStore.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\FunDomain\packages\Newtonsoft.Json.6.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.6.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
