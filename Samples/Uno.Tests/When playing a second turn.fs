@@ -1,7 +1,8 @@
 ﻿module Uno.Tests.``When playing a second turn``
 
-open Uno
-open Game
+open Uno // UL
+open Game // direct access to our SUT
+let replay = FunDomain.Evolution.replay
 
 open Xunit
 open Swensen.Unquote
@@ -11,7 +12,6 @@ let gameId = GameId 1
 let context = [   
     GameStarted { GameId = gameId; PlayerCount = 4; FirstCard = red 3; FirstPlayer = 0 } 
     CardPlayed { GameId = gameId; Player = 0; Card = red 9; NextPlayer = 1 } ] 
-
 
 let [<Fact>] ``Same color should be accepted``() =
     test <@ replay context

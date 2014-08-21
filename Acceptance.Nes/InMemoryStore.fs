@@ -19,7 +19,7 @@ let fullGameActions gameId = [
 let streamId gameId = {Bucket=None; StreamId=gameId |> string}
 
 let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` () =
-    let domainHandler = CommandHandler.create replay handle 
+    let domainHandler = CommandHandler.create FunDomain.Evolution.replay handle 
 
     let store = createInMemory()
     let persistingHandler = domainHandler store.read store.append 

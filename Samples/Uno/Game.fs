@@ -35,25 +35,24 @@ type Turn = { Player:int; PlayerCount:int; Direction:Direction } with
             invalidArg "player" "The player value should be between 0 and player count"
         { turn with Player = player }
 
-/// State + evolve function used by handle
+/// State with initial+evolve as used by replay
 type State = { GameAlreadyStarted:bool; Turn:Turn; TopCard:Card } with
     static member initial = { GameAlreadyStarted = false; Turn = Turn.empty; TopCard = DigitCard( Digit 0, Red) }
-
-let evolve state = function
-    | GameStarted e -> 
-        { GameAlreadyStarted = true
-          Turn = Turn.start e.FirstPlayer e.PlayerCount 
-          TopCard = e.FirstCard }
-    | CardPlayed e ->
-        { state with
-            Turn = state.Turn.setPlayer e.NextPlayer
-            TopCard = e.Card }
-    | DirectionChanged e ->
-        { state with 
-            Turn = state.Turn.setDirection e.Direction }
-    | PlayedAtWrongTurn _ 
-    | PlayedWrongCard _ -> 
-        state
+    static member evolve state = function
+        | GameStarted e -> 
+            {   GameAlreadyStarted = true
+                Turn = Turn.start e.FirstPlayer e.PlayerCount 
+                TopCard = e.FirstCard }
+        | CardPlayed e ->
+            { state with
+                Turn = state.Turn.setPlayer e.NextPlayer
+                TopCard = e.Card }
+        | DirectionChanged e ->
+            { state with 
+                Turn = state.Turn.setDirection e.Direction }
+        | PlayedAtWrongTurn _ 
+        | PlayedWrongCard _ -> 
+            state
 
 // Operations of the Game aggregate
 
@@ -109,5 +108,3 @@ let handle state = function
                     let nextTurn = state.Turn.next
                     [ cardPlayed nextTurn.Player ]
             | _ -> [ PlayedWrongCard { GameId = c.GameId; Player = c.Player; Card = c.Card } ] 
-
-let replay = List.fold evolve State.initial

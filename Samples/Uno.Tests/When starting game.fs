@@ -1,7 +1,8 @@
 ﻿module Uno.Tests.``When starting game``
 
-open Uno
-open Game
+open Uno // UL
+open Game // direct access to our SUT
+let replay = FunDomain.Evolution.replay
 
 open Swensen.Unquote
 open Xunit
