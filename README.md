@@ -20,3 +20,9 @@ There are also some style variances from FsUno.Prod. In order of my desire to ge
 2. I've 'already' renamed apply to evolve (not yet agreed in FsUno.Prod)
 3. No .Domain suffixes on assemblies or namespace
 4. I've used unquote for the tests to show an alternate (slightly quirky) DSL. The big advantage is that there's nothing else to write
+5. I've pushed the command messages out into the UL file too
+
+# Open questions
+
+1. is `handle state command` (which I ended up using in this codebase by accident in the pursuit of brevity) more correct than `handle command event` ? (if it is, that's an FsUno.Prod issue; if not, more brackets in the test-DSL)
+2. Is the [arguably positive] tension (one'll be forced to pull stuff out of the body if you want it to stay screen-sized) caused by having all command-handlers in a single pattern match vs having a [handler mapping function](https://github.com/thinkbeforecoding/FsUno.Prod/blob/61515550855e413306de20acfad316311425188e/FsUno.Domain/Game.fs#L160-L162) a good tradeoff ?
