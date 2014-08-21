@@ -19,8 +19,13 @@ type Direction =
 
 type GameId = GameId of int
 
-type GameStarted = { GameId: GameId; PlayerCount: int; FirstCard: Card; FirstPlayer: int }
-type CardPlayed = { GameId: GameId; Player: int; Card: Card; NextPlayer: int }
-type PlayedAtWrongTurn = { GameId: GameId; Player: int; Card: Card }
-type PlayedWrongCard = { GameId: GameId; Player: int; Card: Card }
-type DirectionChanged = { GameId: GameId; Direction: Direction }
+// Events
+type GameStarted = { GameId:GameId; PlayerCount:int; FirstCard:Card; FirstPlayer:int }
+type CardPlayed = { GameId:GameId; Player:int; Card:Card; NextPlayer:int }
+type PlayedAtWrongTurn = { GameId:GameId; Player:int; Card:Card }
+type PlayedWrongCard = { GameId:GameId; Player:int; Card:Card }
+type DirectionChanged = { GameId:GameId; Direction:Direction }
+
+// Commands
+type StartGame = { GameId:GameId; PlayerCount:int; FirstCard:Card }
+type PlayCard = { GameId:GameId; Player:int; Card:Card }
