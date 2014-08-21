@@ -1,5 +1,6 @@
 ﻿namespace FunDomain
 
+[<AutoOpen>]
 module Evolution =
     // A generic replay function that can be used on any aggregate
     let inline replay events =

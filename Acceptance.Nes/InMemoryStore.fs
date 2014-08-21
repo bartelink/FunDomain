@@ -1,9 +1,9 @@
 ﻿module Scenarios
 
-open Uno // Builders
-open Uno.Game // Commands, replay, handle
+open Uno // Card Builders
+open Uno.Game // Commands, handle
 
-open FunDomain // CommandHandler
+open FunDomain // CommandHandler, Evolution.replay
 open FunDomain.Persistence.NEventStore.NesGateway // createInMemory, StreamId
 
 open Xunit
@@ -19,7 +19,7 @@ let fullGameActions gameId = [
 let streamId gameId = {Bucket=None; StreamId=gameId |> string}
 
 let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` () =
-    let domainHandler = CommandHandler.create FunDomain.Evolution.replay handle 
+    let domainHandler = CommandHandler.create replay handle 
 
     let store = createInMemory()
     let persistingHandler = domainHandler store.read store.append 
