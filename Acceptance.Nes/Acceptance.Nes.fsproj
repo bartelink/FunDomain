@@ -54,6 +54,11 @@
     <Compile Include="InMemoryStore.fs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Samples\Uno\Uno.fsproj">
+      <Name>Uno</Name>
+      <Project>{4ee8261c-4629-4b28-a141-9c210c5235a9}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <Private>True</Private>
     </Reference>
@@ -65,11 +70,6 @@
     <ProjectReference Include="..\FunDomain\FunDomain.fsproj">
       <Name>FunDomain</Name>
       <Project>{b163b5c5-e0f9-4c92-a823-612f32d84693}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <ProjectReference Include="..\Samples\FunUno\FunUno.fsproj">
-      <Name>FunUno</Name>
-      <Project>{4ee8261c-4629-4b28-a141-9c210c5235a9}</Project>
       <Private>True</Private>
     </ProjectReference>
     <Reference Include="Unquote">

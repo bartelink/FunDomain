@@ -1,7 +1,7 @@
 ﻿module Scenarios
 
-open FunUno.UnoGame // Commands, replay, handle
-open FunUno.UnoGame.Events // Digit
+open Uno // Builders
+open Uno.Game // Commands, replay, handle
 
 open FunDomain // CommandHandler
 open FunDomain.Persistence.NEventStore.NesGateway // createInMemory, StreamId
@@ -9,12 +9,12 @@ open FunDomain.Persistence.NEventStore.NesGateway // createInMemory, StreamId
 open Xunit
 
 let fullGameActions gameId = [
-    StartGame { GameId=gameId; PlayerCount=4; TopCard=Digit(3, Red) }
-    PlayCard  { GameId=gameId; Player=0; Card=Digit(3, Blue) }
-    PlayCard  { GameId=gameId; Player=1; Card=Digit(8, Blue) }
-    PlayCard  { GameId=gameId; Player=2; Card=Digit(8, Yellow) }
-    PlayCard  { GameId=gameId; Player=3; Card=Digit(4, Yellow) }
-    PlayCard  { GameId=gameId; Player=0; Card=Digit(4, Green) } ]
+    StartGame { GameId=gameId; PlayerCount=4; FirstCard=red 3 }
+    PlayCard  { GameId=gameId; Player=0; Card=blue 3 }
+    PlayCard  { GameId=gameId; Player=1; Card=blue 8 }
+    PlayCard  { GameId=gameId; Player=2; Card=yellow 8 }
+    PlayCard  { GameId=gameId; Player=3; Card=yellow 4 }
+    PlayCard  { GameId=gameId; Player=0; Card=green 4 } ]
 
 let streamId gameId = {Bucket=None; StreamId=gameId |> string}
 
@@ -27,6 +27,6 @@ let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` ()
     let gameId = 42
     let stream = streamId gameId
 
-    for action in fullGameActions gameId do 
+    for action in fullGameActions <| GameId gameId do 
         printfn "Processing %A against Stream %A" action stream
         action |> persistingHandler stream
