@@ -13,6 +13,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Uno", "Samples\Uno\Uno.fspr
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Uno.Tests", "Samples\Uno.Tests\Uno.Tests.fsproj", "{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Tests", "FunDomain.Tests\FunDomain.Tests.fsproj", "{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
