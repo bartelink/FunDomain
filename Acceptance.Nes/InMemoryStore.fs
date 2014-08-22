@@ -14,9 +14,10 @@ let fullGameActions gameId = [
     PlayCard  { GameId=gameId; Player=1; Card=blue 8 }
     PlayCard  { GameId=gameId; Player=2; Card=yellow 8 }
     PlayCard  { GameId=gameId; Player=3; Card=yellow 4 }
-    PlayCard  { GameId=gameId; Player=0; Card=green 4 } ]
+    PlayCard  { GameId=gameId; Player=0; Card=green 4 } 
+    PlayCard  { GameId=gameId; Player=0; Card=KickBack Green} ]
 
-let streamId gameId = {Bucket=None; StreamId=gameId |> string}
+let gameStreamId gameNo = {Bucket=None; StreamId=string gameNo}
 
 let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` () =
     let domainHandler = CommandHandler.create replay handle 
@@ -24,9 +25,9 @@ let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` ()
     let store = createInMemory()
     let persistingHandler = domainHandler store.read store.append 
 
-    let gameId = 42
-    let stream = streamId gameId
+    let gameNo = 42
+    let streamId = gameStreamId gameNo
 
-    for action in fullGameActions <| GameId gameId do 
-        printfn "Processing %A against Stream %A" action stream
-        action |> persistingHandler stream
+    for action in fullGameActions <| GameId gameNo do 
+        printfn "Processing %A against Stream %A" action streamId
+        action |> persistingHandler streamId

@@ -33,9 +33,9 @@ type Streamer private (inner') =
                 commits
                 |> Seq.collect (fun ev -> ev.Events)
                 |> Seq.map (fun em -> 
-                    let caseName = em.Headers.["type"] :?> string
+                    let eventTypeName = em.Headers.["type"] :?> string
                     let blob = em.Body |> unbox
-                    deserializeUnion caseName blob)
+                    deserializeUnionByCaseItemType eventTypeName blob)
                 |> Seq.choose id
                 |> List.ofSeq
             let tokenOption = 
@@ -52,9 +52,9 @@ type Streamer private (inner') =
         async {
             let eventMessages = 
                 events |> Seq.map (fun event ->
-                    let caseName,blob = event |> serializeUnion
+                    let eventTypeName,blob = event |> serializeUnionByCaseItemType
                     let headers = Dictionary<_,_>(capacity=1)
-                    headers.["type"] <- box caseName
+                    headers.["type"] <- box eventTypeName
                     let body = box blob
                     EventMessage(Headers=headers, Body=body))
             let updatedStreamRevision=token |> Option.map (fun token -> token.StreamRevision+1)
