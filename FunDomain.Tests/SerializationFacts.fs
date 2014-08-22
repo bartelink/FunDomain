@@ -7,7 +7,7 @@ open System.IO
 open Xunit
 open Swensen.Unquote
 
-module ``Fixups for Json.net intrinsic behavior`` =
+module ``Fixups for JsonNet intrinsic behavior`` =
     let serialize converters o = 
         let serializer = createSerializer converters
         use w = new StringWriter()
