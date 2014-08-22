@@ -36,7 +36,7 @@ module structs =
     
         test <@ Digit 7 = ("7" |> deserialize) @>
 
-module ``Single case DUs`` = 
+module ``Single case DUs`` =
     type GameId = GameId of int
 
     let [<Fact>] ``a single case union should be serialized as its content`` () =
@@ -48,3 +48,36 @@ module ``Single case DUs`` =
         let deserialize = deserialize [ unionConverter ]
     
         test <@ GameId 1234 = ("1234" |> deserialize)  @>
+
+module ``Events bodies with unique names enlisted into DUs`` =
+    type E1 = { Id:int }
+    type E2 = { Name:string; Value:string }
+
+    type Event =
+        | ET1 of E1
+        | ET2 of E2
+
+    let [<Fact>] ``Can serialize, refecting item typeName`` () =
+        let input = ET1 { Id = 5 }
+        let eventType,body = serializeBody input
+        printfn "%s" <| System.Text.Encoding.Default.GetString body
+        test <@ "E1" = eventType @>
+
+    type Event2 =
+        | ET3 of int
+        | ET4 of E2
+
+    let [<Fact>] ``deserialize into incompatible DU yields None`` () =
+        let input = ET1 { Id = 5 }
+        let eventType,body = serializeBody input
+        test <@ None = deserializeBody<Event2> eventType body @>
+        
+    type Event3 =
+        | ET4 of E1
+        | ET5 of E2
+
+    let [<Fact>] ``deserialize into incompatible DU yields Some`` () =
+        let input = ET1 { Id = 5 }
+        let eventType,body = serializeBody input
+        let compatible = ET4 { Id = 5 }
+        test <@ Some compatible = deserializeBody eventType body @>
