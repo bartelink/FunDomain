@@ -62,6 +62,7 @@
       <Link>Serialization.fs</Link>
     </Compile>
     <Compile Include="SerializationFacts.fs" />
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

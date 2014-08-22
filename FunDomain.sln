@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30501.0
+VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.NEventStore", "FunDomain.Persistence.NEventStore\FunDomain.Persistence.NEventStore.fsproj", "{7A26B0DC-7834-497A-9E88-91D1FC15E10B}"
 EndProject
@@ -14,6 +14,12 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Uno.Tests", "Samples\Uno.Tests\Uno.Tests.fsproj", "{4BC74EB0-B9F1-4CFB-A4F1-C85505BD8698}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Tests", "FunDomain.Tests\FunDomain.Tests.fsproj", "{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{922D0E98-05A4-4878-9A37-B7E6BB16C239}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
