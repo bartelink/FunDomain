@@ -49,7 +49,7 @@ module ``Single case DUs`` =
     
         test <@ GameId 1234 = ("1234" |> deserialize)  @>
 
-module ``Events bodies with unique names enlisted into DUs`` =
+module ``Event types with unique names enlisted into overlapping DUs`` =
     type E1 = { Id:int }
     type E2 = { Name:string; Value:string }
 
@@ -57,7 +57,7 @@ module ``Events bodies with unique names enlisted into DUs`` =
         | ET1 of E1
         | ET2 of E2
 
-    let [<Fact>] ``Can serialize, refecting item typeName`` () =
+    let [<Fact>] ``Can serialize, emitting item typeName together with a neutral DU body`` () =
         let input = ET1 { Id = 5 }
         let eventType,body = serializeBody input
         printfn "%s" <| System.Text.Encoding.Default.GetString body
@@ -73,11 +73,11 @@ module ``Events bodies with unique names enlisted into DUs`` =
         test <@ None = deserializeBody<Event2> eventType body @>
         
     type Event3 =
-        | ET4 of E1
-        | ET5 of E2
+        | ET4 of E2
+        | ET5 of E1
 
-    let [<Fact>] ``deserialize into incompatible DU yields Some`` () =
+    let [<Fact>] ``deserialize into compatible DU yields compatible case`` () =
         let input = ET1 { Id = 5 }
         let eventType,body = serializeBody input
-        let compatible = ET4 { Id = 5 }
+        let compatible = ET5 { Id = 5 }
         test <@ Some compatible = deserializeBody eventType body @>
