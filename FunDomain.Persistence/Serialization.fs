@@ -196,37 +196,38 @@ let converters<'a> =
         getValues typeof<'a>.Assembly
         |> Seq.map valueConverter
         |> Seq.toList
-    [ unionConverter;optionConverter]
+    [ unionConverter; optionConverter]
     @ valueConverters
+
+let createSerializer converters =
+    let serializer = new JsonSerializer()
+    converters |> List.iter serializer.Converters.Add
+    serializer
+
+let createUnionSerializer<'a> (case:UnionCaseInfo) =
+    createSerializer <| rootUnionConverter<'a> case :: converters<'a>
 
 let deserializeUnion<'a> eventType data = 
     FSharpType.GetUnionCases(typeof<'a>)
     |> Array.tryFind (fun c -> c.Name = eventType)
     |> Option.map (fun case ->  
-        let serializer = new JsonSerializer()
-        rootUnionConverter<'a> case :: converters<'a>
-        |> List.iter serializer.Converters.Add
-            
+        let serializer = createUnionSerializer<'a> case
         use stream = new IO.MemoryStream(data: byte[])
         use reader = new JsonTextReader(new IO.StreamReader(stream))
         serializer.Deserialize<'a>(reader))
 
 let serializeUnion (o:'a)  =
     let case,_ = FSharpValue.GetUnionFields(o, typeof<'a>)
-    let serializer = new JsonSerializer()
-    rootUnionConverter<'a> case :: converters<'a>
-    |> List.iter serializer.Converters.Add
+    let serializer = createUnionSerializer<'a> case
     use stream = new IO.MemoryStream()
     use writer = new IO.StreamWriter(stream)
     serializer.Serialize(writer, o)
     writer.Flush()
     case.Name, stream.ToArray()
 
-let serializeBody (o:'a)  =
+let serializeUnionByCaseItemType (o:'a)  =
     let case,fields = FSharpValue.GetUnionFields(o, typeof<'a>)
-    let serializer = new JsonSerializer()
-    rootUnionConverter<'a> case :: converters<'a>
-    |> List.iter serializer.Converters.Add
+    let serializer = createUnionSerializer<'a> case
     use stream = new IO.MemoryStream()
     use writer = new IO.StreamWriter(stream)
     let item = fields |> Seq.exactlyOne
@@ -234,19 +235,15 @@ let serializeBody (o:'a)  =
     writer.Flush()
     item.GetType().Name, stream.ToArray()
 
-let deserializeBody<'a> eventType data = 
+let deserializeUnionByCaseItemType<'a> caseItemTypeName data = 
     let isItemOfEventType (case:UnionCaseInfo) =
         let item = case.GetFields() |> Seq.exactlyOne 
-        printfn "%A = %A" (item.PropertyType.GetType().Name) eventType
-        item.PropertyType.Name = eventType
+        item.PropertyType.Name = caseItemTypeName
 
     FSharpType.GetUnionCases(typeof<'a>)
     |> Array.tryFind isItemOfEventType 
     |> Option.map (fun case ->  
-        let serializer = new JsonSerializer()
-        rootUnionConverter<'a> case :: converters<'a>
-        |> List.iter serializer.Converters.Add
-            
+        let serializer = createUnionSerializer<'a> case
         use stream = new IO.MemoryStream(data: byte[])
         use reader = new JsonTextReader(new IO.StreamReader(stream))
         serializer.Deserialize<'a>(reader))
