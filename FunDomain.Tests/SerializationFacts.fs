@@ -57,9 +57,9 @@ module ``Event types with unique names enlisted into overlapping DUs`` =
 
     let [<Fact>] ``Can serialize, emitting item typeName together with a neutral DU body`` () =
         let input = ET1 { Id = 5 }
-        let eventType,body = serializeUnionByCaseItemType input
-        printfn "%s" <| System.Text.Encoding.Default.GetString body
-        test <@ "SignificantThingOccurred" = eventType @>
+        let encoded = EncodedEvent.serializeUnionByCaseItemType input
+        printfn "%s" <| System.Text.Encoding.Default.GetString encoded.Encoded
+        test <@ "SignificantThingOccurred" = encoded.EventTypeName @>
 
     type UninterestedProjection =
         | ET2 of LoggedOut
@@ -67,8 +67,8 @@ module ``Event types with unique names enlisted into overlapping DUs`` =
 
     let [<Fact>] ``deserialize into incompatible DU yields None`` () =
         let input = ET1 { Id = 5 }
-        let eventType,body = serializeUnionByCaseItemType input
-        test <@ None = deserializeUnionByCaseItemType<UninterestedProjection> eventType body @>
+        let encoded = EncodedEvent.serializeUnionByCaseItemType input
+        test <@ None = encoded.deserializeUnionByCaseItemType<UninterestedProjection> () @>
         
     type CompatibleProjection =
         | ET2 of LoggedIn
@@ -76,6 +76,6 @@ module ``Event types with unique names enlisted into overlapping DUs`` =
 
     let [<Fact>] ``deserialize into compatible DU yields compatible case`` () =
         let input = ET1 { Id = 5 }
-        let eventType,body = serializeUnionByCaseItemType input
+        let encoded = EncodedEvent.serializeUnionByCaseItemType input
         let compatible = ET3 { Id = 5 }
-        test <@ Some compatible = deserializeUnionByCaseItemType eventType body @>
+        test <@ Some compatible = encoded.deserializeUnionByCaseItemType () @>
