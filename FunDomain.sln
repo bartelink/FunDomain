@@ -5,7 +5,7 @@ VisualStudioVersion = 12.0.30723.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.NEventStore", "FunDomain.Persistence.NEventStore\FunDomain.Persistence.NEventStore.fsproj", "{7A26B0DC-7834-497A-9E88-91D1FC15E10B}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Acceptance.Nes", "Acceptance.Nes\Acceptance.Nes.fsproj", "{483336F5-083A-49C1-AE4B-A3E7DDCD3E60}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.NEventStore.Acceptance", "FunDomain.Persistence.NEventStore.Acceptance\FunDomain.Persistence.NEventStore.Acceptance.fsproj", "{483336F5-083A-49C1-AE4B-A3E7DDCD3E60}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain", "FunDomain\FunDomain.fsproj", "{B163B5C5-E0F9-4C92-A823-612F32D84693}"
 EndProject

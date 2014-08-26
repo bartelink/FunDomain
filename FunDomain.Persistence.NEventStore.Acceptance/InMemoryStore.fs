@@ -1,4 +1,4 @@
-﻿module Scenarios
+﻿module FunDomain.Persistence.NEventStore.Acceptance.InMemoryStore
 
 open Uno // Card Builders
 open Uno.Game // Commands, handle
