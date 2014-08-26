@@ -28,7 +28,7 @@ let fullGameActions gameId = [
     PlayCard  { GameId=gameId; Player=0; Card=green 4 } 
     PlayCard  { GameId=gameId; Player=1; Card=KickBack Green } ]
 
-let gameStreamId gameNo = {Bucket=None; StreamId=string gameNo}
+let gameStreamId (GameId no) = {Bucket=None; StreamId=string no }
 
 type FlowEvents =
     | DirectionChanged of DirectionChanged
@@ -45,14 +45,14 @@ let logger =
 type DirectionMonitor() = 
     let dirs = System.Collections.Generic.Dictionary<_,_> ()
     let agent = 
-        MailboxProcessor.Start <| fun inbox -> async { 
+        MailboxProcessor.Start <| fun inbox -> async {
             while true do
                 let! evt = inbox.Receive () 
                 evt |> function
-                    | Started { GameId = GameId no } -> dirs.[no] <- ClockWise
-                    | DirectionChanged { GameId = GameId no; Direction = direction } -> dirs.[no] <- direction }
+                    | Started e -> dirs.[e.GameId] <- ClockWise
+                    | DirectionChanged e -> dirs.[e.GameId] <- e.Direction }
     member this.Post = agent.Post
-    member this.CurrentDirectionOfGame (GameId no) = dirs.[no]
+    member this.CurrentDirectionOfGame gameId = dirs.[gameId]
 
 let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` () =
     let domainHandler = CommandHandler.create replay handle 
@@ -62,9 +62,9 @@ let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` ()
     
     let monitor = DirectionMonitor()
 
-    let gameNo = 42
-    let streamId = gameStreamId gameNo
-    for action in fullGameActions <| GameId gameNo do 
+    let gameId = GameId 42
+    let streamId = gameStreamId gameId
+    for action in fullGameActions gameId do 
         printfn "Processing %A against Stream %A" action streamId
         action |> persistingHandler streamId
 
@@ -77,4 +77,4 @@ let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` ()
     |> Async.RunSynchronously
     printfn "Projection queue empty"
 
-    test <@ CounterClockWise = monitor.CurrentDirectionOfGame (GameId gameNo) @>
+    test <@ CounterClockWise = monitor.CurrentDirectionOfGame gameId @>
