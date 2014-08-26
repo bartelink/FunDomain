@@ -34,32 +34,47 @@ type FlowEvents =
     | DirectionChanged of DirectionChanged
     | Started of GameStarted
 
+let logger = 
+    MailboxProcessor.Start <| fun inbox -> async { 
+        while true do
+            let! evt = inbox.Receive () 
+            evt |> function
+                | Started { GameId = GameId no } -> printfn "Started: %i" no
+                | DirectionChanged { GameId = GameId no; Direction = direction } -> printfn "Game %i direction is now: %A" no direction }
+        
+type DirectionMonitor() = 
+    let dirs = System.Collections.Generic.Dictionary<_,_> ()
+    let agent = 
+        MailboxProcessor.Start <| fun inbox -> async { 
+            while true do
+                let! evt = inbox.Receive () 
+                evt |> function
+                    | Started { GameId = GameId no } -> dirs.[no] <- ClockWise
+                    | DirectionChanged { GameId = GameId no; Direction = direction } -> dirs.[no] <- direction }
+    member this.Post = agent.Post
+    member this.CurrentDirectionOfGame (GameId no) = dirs.[no]
+
 let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` () =
     let domainHandler = CommandHandler.create replay handle 
 
     let store = createInMemory()
     let persistingHandler = domainHandler store.read store.append 
     
+    let monitor = DirectionMonitor()
+
     let gameNo = 42
     let streamId = gameStreamId gameNo
-
     for action in fullGameActions <| GameId gameNo do 
         printfn "Processing %A against Stream %A" action streamId
         action |> persistingHandler streamId
 
-    let dirs = System.Collections.Generic.Dictionary<_,_> ()
-
     NesProjector.start store 10 (fun batch ->
         batch.chooseOfUnion () |> Seq.iter (fun evt ->
-            evt |> function
-                | Started { GameId = GameId no } -> printfn "Started: %i" no
-                | DirectionChanged { GameId = GameId no; Direction = direction } -> printfn "Game %i direction is now: %A" no direction
+            monitor.Post evt
+            logger.Post evt))
 
-            evt |> function
-                | Started { GameId = GameId no } -> dirs.[no] <- ClockWise
-                | DirectionChanged { GameId = GameId no; Direction = direction } -> dirs.[no] <- direction ) )
-
-    Async.AwaitEvent NesProjector.sleeping 
+    Async.AwaitEvent NesProjector.sleeping
     |> Async.RunSynchronously
+    printfn "Projection queue empty"
 
-    test <@ CounterClockWise = dirs.[gameNo] @>
+    test <@ CounterClockWise = monitor.CurrentDirectionOfGame (GameId gameNo) @>
