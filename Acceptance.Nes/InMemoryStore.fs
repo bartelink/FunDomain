@@ -10,26 +10,6 @@ open FunDomain.Persistence.NEventStore // NesProjector
 open Xunit
 open Swensen.Unquote
 
-let drain (store:Streamer) project =     
-    let dispatch (batch:EncodedEventBatch) =
-        batch.chooseOfUnion () |> Seq.iter project
-    let rec loop token =
-        match token |> store.project dispatch with
-        | Some token -> loop token
-        | _ -> () // Exit
-    loop CheckpointToken.initial
-
-let fullGameActions gameId = [
-    StartGame { GameId=gameId; PlayerCount=4; FirstCard=red 3 }
-    PlayCard  { GameId=gameId; Player=0; Card=blue 3 }
-    PlayCard  { GameId=gameId; Player=1; Card=blue 8 }
-    PlayCard  { GameId=gameId; Player=2; Card=yellow 8 }
-    PlayCard  { GameId=gameId; Player=3; Card=yellow 4 }
-    PlayCard  { GameId=gameId; Player=0; Card=green 4 } 
-    PlayCard  { GameId=gameId; Player=1; Card=KickBack Green } ]
-
-let gameStreamId (GameId no) = {Bucket=None; StreamId=string no }
-
 type FlowEvents =
     | DirectionChanged of DirectionChanged
     | Started of GameStarted
@@ -53,6 +33,17 @@ type DirectionMonitor() =
                     | DirectionChanged e -> dirs.[e.GameId] <- e.Direction }
     member this.Post = agent.Post
     member this.CurrentDirectionOfGame gameId = dirs.[gameId]
+
+let fullGameActions gameId = [
+    StartGame { GameId=gameId; PlayerCount=4; FirstCard=red 3 }
+    PlayCard  { GameId=gameId; Player=0; Card=blue 3 }
+    PlayCard  { GameId=gameId; Player=1; Card=blue 8 }
+    PlayCard  { GameId=gameId; Player=2; Card=yellow 8 }
+    PlayCard  { GameId=gameId; Player=3; Card=yellow 4 }
+    PlayCard  { GameId=gameId; Player=0; Card=green 4 } 
+    PlayCard  { GameId=gameId; Player=1; Card=KickBack Green } ]
+
+let gameStreamId (GameId no) = {Bucket=None; StreamId=string no }
 
 let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` () =
     let domainHandler = CommandHandler.create replay handle 
