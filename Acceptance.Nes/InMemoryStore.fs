@@ -5,6 +5,7 @@ open Uno.Game // Commands, handle
 
 open FunDomain // CommandHandler, Evolution.replay
 open FunDomain.Persistence.NEventStore.NesGateway // createInMemory, StreamId
+open FunDomain.Persistence.NEventStore // NesProjector
 
 open Xunit
 open Swensen.Unquote
@@ -47,13 +48,18 @@ let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` ()
         action |> persistingHandler streamId
 
     let dirs = System.Collections.Generic.Dictionary<_,_> ()
-    drain store <| fun evt ->
-        evt |> function
-            | Started { GameId = GameId no } -> printfn "Started: %i" no
-            | DirectionChanged { GameId = GameId no; Direction = direction } -> printfn "Game %i direction is now: %A" no direction
 
-        evt |> function
-            | Started { GameId = GameId no } -> dirs.[no] <- ClockWise
-            | DirectionChanged { GameId = GameId no; Direction = direction } -> dirs.[no] <- direction
+    NesProjector.start store 10 (fun batch ->
+        batch.chooseOfUnion () |> Seq.iter (fun evt ->
+            evt |> function
+                | Started { GameId = GameId no } -> printfn "Started: %i" no
+                | DirectionChanged { GameId = GameId no; Direction = direction } -> printfn "Game %i direction is now: %A" no direction
+
+            evt |> function
+                | Started { GameId = GameId no } -> dirs.[no] <- ClockWise
+                | DirectionChanged { GameId = GameId no; Direction = direction } -> dirs.[no] <- direction ) )
+
+    Async.AwaitEvent NesProjector.sleeping 
+    |> Async.RunSynchronously
 
     test <@ CounterClockWise = dirs.[gameNo] @>

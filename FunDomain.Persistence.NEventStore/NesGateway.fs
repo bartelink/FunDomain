@@ -82,10 +82,10 @@ type Streamer private (inner') =
             let encodedEvents = commit |> extractEncodedEvents
             token,EncodedEventBatch(encodedEvents))
 
-    member this.project dispatcher checkpointToken =
+    member this.project projection checkpointToken =
         let batch = fetch checkpointToken
         let dispatchElements _ (checkpoint,elements) =
-            elements |> dispatcher 
+            elements |> projection 
             Some checkpoint
         batch |> Seq.fold dispatchElements None
 
