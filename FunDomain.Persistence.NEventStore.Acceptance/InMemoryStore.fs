@@ -4,8 +4,7 @@ open Uno // Card Builders
 open Uno.Game // Commands, handle
 
 open FunDomain // CommandHandler, Evolution.replay
-open FunDomain.Persistence.NEventStore.NesGateway // createInMemory, StreamId
-open FunDomain.Persistence.NEventStore // NesProjector
+open FunDomain.Persistence.NEventStore // Projector, StreamId
 
 open Xunit
 open Swensen.Unquote
@@ -48,23 +47,24 @@ let gameStreamId (GameId no) = {Bucket=None; StreamId=string no }
 let [<Fact>] ``Can run a full round using NEventStore's InMemoryPersistence`` () =
     let domainHandler = CommandHandler.create replay handle 
 
-    let store = createInMemory()
-    let persistingHandler = domainHandler store.read store.append 
-    
     let monitor = DirectionMonitor()
+
+    let store = NesGateway.createInMemory()
+    let projector = Projector( store, 10, (fun batch ->
+        batch.chooseOfUnion () |> Seq.iter (fun evt ->
+            monitor.Post evt
+            logger.Post evt)))
+
+    let persistingHandler = domainHandler store.read store.append
 
     let gameId = GameId 42
     let streamId = gameStreamId gameId
     for action in fullGameActions gameId do 
         printfn "Processing %A against Stream %A" action streamId
         action |> persistingHandler streamId
+        projector.Pulse ()
 
-    NesProjector.start store 10 (fun batch ->
-        batch.chooseOfUnion () |> Seq.iter (fun evt ->
-            monitor.Post evt
-            logger.Post evt))
-
-    Async.AwaitEvent NesProjector.sleeping
+    Async.AwaitEvent projector.sleeping
     |> Async.RunSynchronously
     printfn "Projection queue empty"
 

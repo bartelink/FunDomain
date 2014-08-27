@@ -1,4 +1,4 @@
-﻿module FunDomain.Persistence.NEventStore.NesGateway
+﻿namespace FunDomain.Persistence.NEventStore
 
 open FunDomain.Persistence.Serialization
 
@@ -24,7 +24,7 @@ type EncodedEventBatch (events) =
         cached |> Seq.choose (fun (ee:EncodedEvent) -> ee.deserializeUnionByCaseItemType<'a> ())
 
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
-type Streamer private (inner') = 
+type Store private (inner') = 
     // Hoop jumping a la C++ pimpl pattern - if we don't do this, we're foisting an NEventStore package reference on all downstream users
     let inner : IPersistStreams = unbox inner'
     let defaultBucket bucketId = defaultArg bucketId "default"
@@ -89,7 +89,7 @@ type Streamer private (inner') =
             Some checkpoint
         batch |> Seq.fold dispatchElements None
 
-    static member internal wrap persister = Streamer( box persister)
+    static member internal wrap persister = Store( box persister)
 
     member this.read<'a> stream = 
         let commits,version,_ = 
@@ -110,24 +110,25 @@ type Streamer private (inner') =
         appendToStream stream metadata token encodedEvents
         |> Async.RunSynchronously
 
-let createFromStore (inner:IStoreEvents) = 
-    inner.Advanced |> Streamer.wrap
+module NesGateway =
+    let createFromStore (inner:IStoreEvents) = 
+        inner.Advanced |> Store.wrap
 
-let createInMemory () = 
-    Wireup.Init()
-        .LogToOutputWindow()
-        .UsingInMemoryPersistence()
-        .UsingJsonSerialization()
-        .Build()
-    |> createFromStore
+    let createInMemory () = 
+        Wireup.Init()
+            .LogToOutputWindow()
+            .UsingInMemoryPersistence()
+            .UsingJsonSerialization()
+            .Build()
+        |> createFromStore
 
-let createInMsSqlWithPerfCounters (connectionString:string) perfCounterSetName = 
-    Wireup.Init()
-        .UsingSqlPersistence(connectionString)
-        .WithDialect(new MsSqlDialect())
-        .InitializeStorageEngine()
-        .TrackPerformanceInstance(perfCounterSetName)
-        .UsingJsonSerialization()
-            .Compress()
-        .Build()
-    |> createFromStore
+    let createInMsSqlWithPerfCounters (connectionString:string) perfCounterSetName = 
+        Wireup.Init()
+            .UsingSqlPersistence(connectionString)
+            .WithDialect(new MsSqlDialect())
+            .InitializeStorageEngine()
+            .TrackPerformanceInstance(perfCounterSetName)
+            .UsingJsonSerialization()
+                .Compress()
+            .Build()
+        |> createFromStore
