@@ -51,7 +51,8 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
-    <Compile Include="InMemoryStore.fs" />
+    <Compile Include="EndToEnd.fs" />
+    <None Include="CreateSqlLocalDb.ps1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Samples\Uno\Uno.fsproj">

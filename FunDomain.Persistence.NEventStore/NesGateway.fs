@@ -122,9 +122,9 @@ module NesGateway =
             .Build()
         |> createFromStore
 
-    let createInMsSqlWithPerfCounters (connectionString:string) perfCounterSetName = 
+    let createInMsSqlWithPerfCounters (connectionName:string) perfCounterSetName = 
         Wireup.Init()
-            .UsingSqlPersistence(connectionString)
+            .UsingSqlPersistence(connectionName)
             .WithDialect(new MsSqlDialect())
             .InitializeStorageEngine()
             .TrackPerformanceInstance(perfCounterSetName)
