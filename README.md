@@ -8,19 +8,32 @@ NB be sure to read the [FsUno.Prod Journey](http://thinkbeforecoding.github.io/F
 # Why ?
 
 Most importantly, it contains a spike of [NEventStore](https://github.com/NEventStore/NEventStore) v5 integration for FsUno.Prod 
-(though depending on timelines the actual integration will be against v6 which will incorporate async support)
 
 This should be considered a fork that will eventually expire - some ideas will hopefully make it in (as issues/PRs) into FsUno.Prod.
 
-# Style notes
+# Feature Notes vs FsUno.Prod
+
+1. Demonstrates event type naming encoding scheme
+2. Demonstrates selective projection scheme (all but neutral to whether one is using NES or GES)
+
+# Major TODOs
+
+1. Generalize `NesGateway` code using either an 'async over sync' wrapper for NES v5 or use NES v6 directly (which will switch from sync only to async only at that point)
+2. Push more Wireup out of `NesGateway` (esp if v6 or later allows us to fiddle with the event Data directly) (and identify opportunities to share terminology with GES equivalents)
+3. Further pursuit of generalized Command Processing strategies (outside of just rambling 'Acceptance Test' code)
+4. Futher pursuit of generalized Projection Processing strategies (outside of just rambling 'Acceptance Test' code)
+5. Take out Package Restore when things have stabilised
+6. Experiment more with the [unquote based] test DSLs and/or layer on some wrappers
+
+# Style notes vs FsUno.Prod
 
 There are also some style variances from FsUno.Prod. In order of my desire to getting them embodied in the FsUno.Prod codebase:
 
-1. Uno.fs should not have any code - Builders are separated
-2. I've 'already' renamed apply to evolve (not yet agreed in FsUno.Prod)
+1. `Uno.fs` should not have any code - Builders are separated
+2. I've 'already' renamed `apply` to `evolve` (not yet agreed in FsUno.Prod)
 3. No .Domain suffixes on assemblies or namespace
-4. I've used unquote for the tests to show an alternate (slightly quirky) DSL. The big advantage is that there's nothing else to write
-5. I've pushed the command messages out into the UL file too
+4. I've used unquote for the tests to show an alternate (slightly quirky) DSL. The big advantage is that there's no other test infrastructure to write / copy between test suites
+5. I've pushed the Command messages out into the UL file too
 
 # Open questions
 

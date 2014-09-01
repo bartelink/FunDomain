@@ -36,7 +36,7 @@ type Store private (inner') =
     let commit = inner.Commit >> ignore
 
     let readStream streamId startIndex count =
-        let minRevision,maxRevision = startIndex,startIndex+count-1
+        let minRevision,maxRevision = startIndex,startIndex+count-1 
         async {
             let commits = load streamId minRevision maxRevision |> Array.ofSeq
             let tokenOption = 
