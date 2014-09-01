@@ -35,18 +35,23 @@ type Store private (inner') =
 
     let commit = inner.Commit >> ignore
 
-    let readStream streamId startIndex count =
-        let minRevision,maxRevision = startIndex,startIndex+count-1 
-        async {
-            let commits = load streamId minRevision maxRevision |> Array.ofSeq
-            let tokenOption = 
-                if commits.Length = 0 then 
-                    None 
-                else 
-                    let lastCommit = commits |> Seq.last
-                    Some {CommitSequence=lastCommit.CommitSequence; StreamRevision=lastCommit.StreamRevision}
+    let (|LastCommit|_|) (commits:ICommit array) = 
+        if commits.Length = 0 then None
+        else Some <| Seq.last commits 
 
-            return commits,tokenOption,None }
+    let (|LastCommitToken|) = function
+        | LastCommit last -> { CommitSequence = last.CommitSequence; StreamRevision = last.StreamRevision }
+        | _ -> { CommitSequence = 0; StreamRevision = 0 }
+
+    let readStream streamId minRevision sliceSize = async {
+        let maxRevision = minRevision + sliceSize - 1 
+        let commits = load streamId minRevision maxRevision |> Array.ofSeq
+
+        return commits |> function
+        | LastCommitToken token when commits.Length = sliceSize -> 
+            commits, token, Some <| token.StreamRevision + 1
+        | LastCommitToken token -> 
+            commits, token, None }
 
     let generateEventMessage (encoded:EncodedEvent) =
         let headers = Dictionary<_,_>(capacity=1)
@@ -58,57 +63,51 @@ type Store private (inner') =
         let extractEncoded (em:EventMessage) = { EventTypeName = em.Headers.["type"] :?> string; Encoded = em.Body |> unbox }
         commit.Events |> Seq.map extractEncoded 
 
-    let appendToStream {Bucket=bucketId; StreamId=streamId} streamMeta token encodedEvents =
-        let commitId,commitStamp,commitHeaders = streamMeta
-        async {
-            let eventMessages = encodedEvents |> Seq.map generateEventMessage
-            let updatedStreamRevision=token |> Option.map (fun token -> token.StreamRevision+1)
-            let updatedCommitSequence=token |> Option.map (fun token -> token.CommitSequence+1) 
-            let attempt = 
-                CommitAttempt(
-                    bucketId |> defaultBucket, streamId, 
-                    updatedStreamRevision |> defaultArg <| 1, 
-                    commitId, 
-                    updatedCommitSequence |> defaultArg <| 1, 
-                    commitStamp, 
-                    commitHeaders, 
-                    eventMessages)
-            commit attempt}
+    let appendToStream {Bucket=bucketId; StreamId=streamId} streamMeta token encodedEvents = async {
+        let commitId, commitStamp, commitHeaders = streamMeta
+        let eventMessages = encodedEvents |> Seq.map generateEventMessage
+        let attempt = 
+            CommitAttempt(
+                bucketId |> defaultBucket, streamId, 
+                token.StreamRevision + 1, 
+                commitId, 
+                token.CommitSequence + 1, 
+                commitStamp, 
+                commitHeaders, 
+                eventMessages)
+        commit attempt }
 
-    let fetch token = 
+    let fetch token =
         poll token
         |> Seq.map (fun commit -> 
             let token = { Token = Some commit.CheckpointToken }
             let encodedEvents = commit |> extractEncodedEvents
-            token,EncodedEventBatch(encodedEvents))
+            token, EncodedEventBatch(encodedEvents))
+
+    static member internal wrap persister = Store( box persister)
 
     member this.project projection checkpointToken =
         let batch = fetch checkpointToken
-        let dispatchElements _ (checkpoint,elements) =
+        let dispatchElements _ (checkpoint, elements) =
             elements |> projection 
             Some checkpoint
         batch |> Seq.fold dispatchElements None
 
-    static member internal wrap persister = Store( box persister)
-
-    member this.read<'a> stream = 
-        let commits,version,_ = 
-            readStream stream 0 Int32.MaxValue 
-            |> Async.RunSynchronously
+    member this.read<'a> stream minRevision sliceSize = async {
+        let! commits, sliceLastToken, nextMinRevision = readStream stream minRevision sliceSize
         let encodedEvents = commits |> Seq.collect extractEncodedEvents
-        let inUnion = EncodedEventBatch(encodedEvents).chooseOfUnion<'a> () |> Seq.toList
-        version,inUnion
+        let events = EncodedEventBatch(encodedEvents).chooseOfUnion<'a> () |> Seq.toList
+        return events, sliceLastToken, nextMinRevision }
 
-    member this.append stream token events = 
+    member this.append stream token events = async {
         let commitMetadata() =
             let commitId = Guid.NewGuid() 
             let commitDateTime = DateTime.UtcNow
             let commitHeaders = null
-            commitId,commitDateTime,commitHeaders
+            commitId, commitDateTime, commitHeaders
         let metadata = commitMetadata() 
         let encodedEvents = events |> Seq.map EncodedEvent.serializeUnionByCaseItemType 
-        appendToStream stream metadata token encodedEvents
-        |> Async.RunSynchronously
+        do! appendToStream stream metadata token encodedEvents }
 
 module NesGateway =
     let createFromStore (inner:IStoreEvents) = 

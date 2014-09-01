@@ -18,12 +18,11 @@ This should be considered a fork that will eventually expire - some ideas will h
 
 # Major TODOs
 
-1. Generalize `NesGateway` code using either an 'async over sync' wrapper for NES v5 or use NES v6 directly (which will switch from sync only to async only at that point)
-2. Push more Wireup out of `NesGateway` (esp if v6 or later allows us to fiddle with the event Data directly) (and identify opportunities to share terminology with GES equivalents)
-3. Further pursuit of generalized Command Processing strategies (outside of just rambling 'Acceptance Test' code)
-4. Futher pursuit of generalized Projection Processing strategies (outside of just rambling 'Acceptance Test' code)
-5. Take out Package Restore when things have stabilised
-6. Experiment more with the [unquote based] test DSLs and/or layer on some wrappers
+1. Push more Wireup out of `NesGateway` (esp if v6 or later allows us to fiddle with the event Data directly) (and identify opportunities to share terminology with GES equivalents)
+2. Further pursuit of generalized Command Processing strategies (outside of just rambling 'Acceptance Test' code)
+3. Further pursuit of generalized Projection Processing strategies (outside of just rambling 'Acceptance Test' code)
+4. Take out Package Restore when things have stabilised
+5. Experiment more with the [unquote based] test DSLs and/or layer on some wrappers
 
 # Style notes vs FsUno.Prod
 

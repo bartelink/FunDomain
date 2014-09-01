@@ -52,6 +52,9 @@ type Store private (inner') =
         let encoded = { EventTypeName = event.Event.EventType; Encoded = event.Event.Data }
         encoded.deserializeUnionByCaseItemType ()
 
+    let nextSliceToken (slice:StreamEventsSlice) =
+        if slice.IsEndOfStream then None else Some slice.NextEventNumber
+
     static member internal wrap connection = Store( box connection)
 
     member this.append streamId expectedVersion newEvents = async {
@@ -66,12 +69,7 @@ type Store private (inner') =
             |> Seq.choose deserialize
             |> Seq.toList
         
-        let nextEventNumber = 
-            if slice.IsEndOfStream 
-            then None 
-            else Some slice.NextEventNumber
-
-        return events, slice.LastEventNumber, nextEventNumber }
+        return events, slice.LastEventNumber, slice |> nextSliceToken }
 
     member this.subscribe<'a> (username,password) (projection:'a -> unit) =
         inner.AsyncSubscribeToAll 

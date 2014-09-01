@@ -11,30 +11,30 @@ open FunDomain.Persistence.EventStore
 open Xunit
 open Swensen.Unquote
 
-let playCircuit (store:Store) =
+let playCircuit (store:Store) = async {
     let domainHandler = CommandHandler.createAsyncSliced (initial'()) evolve' handle 
 
     let monitor = DirectionMonitor()
     let logger = Logger()
     let credentials = "admin", "changeit"
-    store.subscribe credentials (fun evt ->
+    let! _ = store.subscribe credentials (fun evt ->
         monitor.Post evt
-        logger.Post evt ) |> Async.Ignore |> Async.RunSynchronously
+        logger.Post evt )
     let persistingHandler = domainHandler store.read store.append
 
     let gameId = randomGameId ()
     let topicId = gameTopicId gameId
     for action in fullCircuitCommands gameId do 
         printfn "Processing %A against Stream %A" action topicId
-        action |> persistingHandler topicId |> Async.RunSynchronously
+        do! action |> persistingHandler topicId 
 
-    Async.Sleep 2000 |> Async.RunSynchronously
+    do! Async.Sleep 2000
 
-    monitor.CurrentDirectionOfGame gameId
+    return monitor.CurrentDirectionOfGame gameId }
 
-let [<Fact>] ``Can play a circuit and consume projection using GetEventStore`` () =
-    let store = GesGateway.create <| System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 1113) |> Async.RunSynchronously
+let [<Fact>] ``Can play a circuit and consume projection using GetEventStore`` () = Async.StartAsTask <| async {
+    let! store = GesGateway.create <| System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 1113) 
 
-    let finalDirection = playCircuit store
+    let! finalDirection = playCircuit store
 
-    test <@ CounterClockWise = finalDirection @>
+    test <@ CounterClockWise = finalDirection @> }

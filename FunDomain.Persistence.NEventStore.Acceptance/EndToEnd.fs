@@ -14,8 +14,8 @@ open Swensen.Unquote
 // Shadow with explicit declaration of desired bucketing
 let gameTopicId id = {Bucket=None; StreamId=gameTopicId id }
 
-let playCircuit store =
-    let domainHandler = CommandHandler.create replay handle 
+let playCircuit store = async {
+    let domainHandler = CommandHandler.createAsyncSliced (initial'()) evolve' handle 
 
     let monitor = DirectionMonitor()
     let logger = Logger()
@@ -31,27 +31,27 @@ let playCircuit store =
     let topicId = gameTopicId gameId
     for action in fullCircuitCommands gameId do 
         printfn "Processing %A against Stream %A" action topicId
-        action |> persistingHandler topicId
+        do! action |> persistingHandler topicId
         projector.Pulse ()
 
-    Async.AwaitEvent projector.sleeping |> Async.RunSynchronously
+    do! Async.AwaitEvent projector.sleeping
     printfn "Projection queue empty"
 
-    monitor.CurrentDirectionOfGame gameId
+    return monitor.CurrentDirectionOfGame gameId }
 
-let [<Fact>] ``Can play a circuit and consume projection using NEventStore InMemory`` () =
+let [<Fact>] ``Can play a circuit and consume projection using NEventStore InMemory`` () = Async.StartAsTask <| async {
     let store = NesGateway.createInMemory ()
 
-    let finalDirection = playCircuit store
+    let! finalDirection = playCircuit store
 
-    test <@ CounterClockWise = finalDirection @>
+    test <@ CounterClockWise = finalDirection @> } 
 
 // NB Requires a SQL Server Instance with a DB Created. Any SQL will do, but the app.config will be satisfied if you run ./CreateSqlLocalDb.ps1
-let [<Fact>] ``Can play a circuit and consume projection using NEventStore SqlPersistence`` () =
+let [<Fact>] ``Can play a circuit and consume projection using NEventStore SqlPersistence`` () = Async.StartAsTask <| async {
     let connectionStringName = "UnoNes"
     let perfCounterInstanceName = "UnoNes"
     let store = NesGateway.createInMsSqlWithPerfCounters connectionStringName perfCounterInstanceName 
 
-    let finalDirection = playCircuit store
+    let! finalDirection = playCircuit store
 
-    test <@ CounterClockWise = finalDirection @>
+    test <@ CounterClockWise = finalDirection @> }
