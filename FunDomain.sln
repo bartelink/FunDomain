@@ -21,6 +21,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{922D0E
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.EventStore", "FunDomain.Persistence.EventStore\FunDomain.Persistence.EventStore.fsproj", "{7F6B835C-7627-46A8-88DD-AF4C9EADA0EE}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.EventStore.Acceptance", "FunDomain.Persistence.EventStore.Acceptance\FunDomain.Persistence.EventStore.Acceptance.fsproj", "{55B61236-4168-4FA8-92E3-D298897F1979}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +55,14 @@ Global
 		{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F6B835C-7627-46A8-88DD-AF4C9EADA0EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F6B835C-7627-46A8-88DD-AF4C9EADA0EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F6B835C-7627-46A8-88DD-AF4C9EADA0EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F6B835C-7627-46A8-88DD-AF4C9EADA0EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55B61236-4168-4FA8-92E3-D298897F1979}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55B61236-4168-4FA8-92E3-D298897F1979}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55B61236-4168-4FA8-92E3-D298897F1979}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55B61236-4168-4FA8-92E3-D298897F1979}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
