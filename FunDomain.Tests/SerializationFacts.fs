@@ -58,8 +58,8 @@ module ``Event types with unique names enlisted into overlapping DUs`` =
     let [<Fact>] ``Can serialize, emitting item typeName together with a neutral DU body`` () =
         let input = ET1 { Id = 5 }
         let encoded = EncodedEvent.serializeUnionByCaseItemType input
-        printfn "%s" <| System.Text.Encoding.Default.GetString encoded.Encoded
-        test <@ "SignificantThingOccurred" = encoded.EventTypeName @>
+        printfn "%s" <| System.Text.Encoding.Default.GetString encoded.Data
+        test <@ "SignificantThingOccurred" = encoded.EventType @>
 
     type UninterestedProjection =
         | ET2 of LoggedOut

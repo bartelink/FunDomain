@@ -207,6 +207,7 @@ let createSerializer converters =
 let createUnionSerializer<'a> (case:UnionCaseInfo) =
     createSerializer <| rootUnionConverter<'a> case :: converters<'a>
 
+// NB not presently in use in FunDomain
 let deserializeUnion<'a> eventType data = 
     FSharpType.GetUnionCases(typeof<'a>)
     |> Array.tryFind (fun c -> c.Name = eventType)
@@ -216,6 +217,7 @@ let deserializeUnion<'a> eventType data =
         use reader = new JsonTextReader(new IO.StreamReader(stream))
         serializer.Deserialize<'a>(reader))
 
+// NB not presently in use in FunDomain
 let serializeUnion (o:'a)  =
     let case,_ = FSharpValue.GetUnionFields(o, typeof<'a>)
     let serializer = createUnionSerializer<'a> case
@@ -225,7 +227,7 @@ let serializeUnion (o:'a)  =
     writer.Flush()
     case.Name, stream.ToArray()
 
-type EncodedEvent = { EventTypeName:string; Encoded:byte[] } with
+type EncodedEvent = { EventType:string; Data:byte[] } with
     static member serializeUnionByCaseItemType (o:'a) =
         let case,fields = FSharpValue.GetUnionFields(o, typeof<'a>)
         let serializer = createUnionSerializer<'a> case
@@ -234,17 +236,17 @@ type EncodedEvent = { EventTypeName:string; Encoded:byte[] } with
         let item = fields |> Seq.exactlyOne
         serializer.Serialize(writer, o)
         writer.Flush()
-        { EventTypeName = item.GetType().Name; Encoded = stream.ToArray() }
+        { EventType = item.GetType().Name; Data = stream.ToArray() }
 
     member this.deserializeUnionByCaseItemType<'a> () = 
         let isItemOfEventType (case:UnionCaseInfo) =
             let item = case.GetFields() |> Seq.exactlyOne 
-            item.PropertyType.Name = this.EventTypeName
+            item.PropertyType.Name = this.EventType
 
         FSharpType.GetUnionCases(typeof<'a>)
         |> Array.tryFind isItemOfEventType 
         |> Option.map (fun case ->  
             let serializer = createUnionSerializer<'a> case
-            use stream = new IO.MemoryStream(this.Encoded)
+            use stream = new IO.MemoryStream(this.Data)
             use reader = new JsonTextReader(new IO.StreamReader(stream))
             serializer.Deserialize<'a>(reader))

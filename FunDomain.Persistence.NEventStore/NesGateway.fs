@@ -55,12 +55,12 @@ type Store private (inner') =
 
     let generateEventMessage (encoded:EncodedEvent) =
         let headers = Dictionary<_,_>(capacity=1)
-        headers.["type"] <- box encoded.EventTypeName
-        let body = box encoded.Encoded
+        headers.["type"] <- box encoded.EventType
+        let body = box encoded.Data
         EventMessage(Headers=headers, Body=body)
 
     let extractEncodedEvents (commit:ICommit) : EncodedEvent seq =
-        let extractEncoded (em:EventMessage) = { EventTypeName = em.Headers.["type"] :?> string; Encoded = em.Body |> unbox }
+        let extractEncoded (em:EventMessage) = { EventType = em.Headers.["type"] :?> string; Data = em.Body |> unbox }
         commit.Events |> Seq.map extractEncoded 
 
     let appendToStream {Bucket=bucketId; StreamId=streamId} streamMeta token encodedEvents = async {

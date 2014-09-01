@@ -46,14 +46,11 @@ type Store private (inner') =
 
     let serialize event = 
         let encoded = EncodedEvent.serializeUnionByCaseItemType event
-        EventData(System.Guid.NewGuid(), encoded.EventTypeName, (*isJson*)true, encoded.Encoded, (*metadata*)null)
+        EventData(System.Guid.NewGuid(), encoded.EventType, (*isJson*)true, encoded.Data, (*metadata*)null)
 
     let deserialize (event:ResolvedEvent) = 
-        let encoded = { EventTypeName = event.Event.EventType; Encoded = event.Event.Data }
+        let encoded = { EventType = event.Event.EventType; Data = event.Event.Data }
         encoded.deserializeUnionByCaseItemType ()
-
-    let nextSliceToken (slice:StreamEventsSlice) =
-        if slice.IsEndOfStream then None else Some slice.NextEventNumber
 
     static member internal wrap connection = Store( box connection)
 
@@ -62,14 +59,15 @@ type Store private (inner') =
         return! inner.AsyncAppendToStream streamId expectedVersion serializedEvents }
 
     member this.read streamId version count = async {
-        let! slice = inner.AsyncReadStreamEventsForward streamId version count true
+        let! slice = inner.AsyncReadStreamEventsForward streamId version count (*resolveLinkTos*)true
+        let nextSliceToken = if slice.IsEndOfStream then None else Some slice.NextEventNumber
 
         let events = 
             slice.Events 
             |> Seq.choose deserialize
             |> Seq.toList
         
-        return events, slice.LastEventNumber, slice |> nextSliceToken }
+        return events, slice.LastEventNumber, nextSliceToken }
 
     member this.subscribe<'a> (username,password) (projection:'a -> unit) =
         inner.AsyncSubscribeToAll 
