@@ -9,7 +9,8 @@ type Projector( store:Store, sleepMs, projection ) =
         MailboxProcessor.Start <|
             fun inbox ->
                 let rec loop token = async {
-                    match token |> store.project projection with
+                    let! nextToken = store.project projection token
+                    match nextToken with
                     | Some token -> 
                         return! loop token
                     | _ -> 

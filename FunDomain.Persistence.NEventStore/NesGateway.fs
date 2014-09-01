@@ -77,21 +77,21 @@ type Store private (inner') =
                 eventMessages)
         commit attempt }
 
-    let fetch token =
-        poll token
+    let fetch token = async {
+        return poll token
         |> Seq.map (fun commit -> 
             let token = { Token = Some commit.CheckpointToken }
             let encodedEvents = commit |> extractEncodedEvents
-            token, EncodedEventBatch(encodedEvents))
+            token, EncodedEventBatch(encodedEvents)) }
 
     static member internal wrap persister = Store( box persister)
 
-    member this.project projection checkpointToken =
-        let batch = fetch checkpointToken
+    member this.project projection checkpointToken = async {
+        let! batch = fetch checkpointToken
         let dispatchElements _ (checkpoint, elements) =
             elements |> projection 
             Some checkpoint
-        batch |> Seq.fold dispatchElements None
+        return batch |> Seq.fold dispatchElements None }
 
     member this.read<'a> stream minRevision sliceSize = async {
         let! commits, sliceLastToken, nextMinRevision = readStream stream minRevision sliceSize
