@@ -1,7 +1,5 @@
 ﻿namespace FunDomain.Persistence.NEventStore
 
-open FunDomain.Persistence.Serialization
-
 open NEventStore
 open NEventStore.Persistence
 open NEventStore.Persistence.Sql.SqlDialects
@@ -18,10 +16,7 @@ type StreamId = { Bucket:string option; StreamId:string }
 type CheckpointToken = { Token:string option } with 
     static member initial = { Token = None }
 
-type EncodedEventBatch (events) =
-    let cached = Seq.cache events
-    member this.chooseOfUnion<'a> () =
-        cached |> Seq.choose (fun (ee:EncodedEvent) -> ee.deserializeUnionByCaseItemType<'a> ())
+type StorableEvent = (*eventType*)string*(*data*)byte[]
 
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
 type Store private (inner') = 
@@ -53,14 +48,14 @@ type Store private (inner') =
         | LastCommitToken token -> 
             commits, token, None }
 
-    let generateEventMessage (encoded:EncodedEvent) =
+    let generateEventMessage (eventType:string,data:byte[]) =
         let headers = Dictionary<_,_>(capacity=1)
-        headers.["type"] <- box encoded.EventType
-        let body = box encoded.Data
+        headers.["type"] <- box eventType
+        let body = box data
         EventMessage(Headers=headers, Body=body)
 
-    let extractEncodedEvents (commit:ICommit) : EncodedEvent seq =
-        let extractEncoded (em:EventMessage) = { EventType = em.Headers.["type"] :?> string; Data = em.Body |> unbox }
+    let extractStorableEvents (commit:ICommit) : StorableEvent seq =
+        let extractEncoded (em:EventMessage) = em.Headers.["type"] :?> string, em.Body |> unbox
         commit.Events |> Seq.map extractEncoded 
 
     let appendToStream {Bucket=bucketId; StreamId=streamId} streamMeta token encodedEvents = async {
@@ -81,8 +76,8 @@ type Store private (inner') =
         return poll token
         |> Seq.map (fun commit -> 
             let token = { Token = Some commit.CheckpointToken }
-            let encodedEvents = commit |> extractEncodedEvents
-            token, EncodedEventBatch(encodedEvents)) }
+            let encodedEvents = commit |> extractStorableEvents
+            token, encodedEvents) }
 
     static member internal wrap persister = Store( box persister)
 
@@ -95,10 +90,9 @@ type Store private (inner') =
             Some checkpoint
         return batch |> Seq.fold dispatchElements None }
 
-    member this.read<'a> stream minRevision sliceSize = async {
+    member this.read stream minRevision sliceSize = async {
         let! commits, sliceLastToken, nextMinRevision = readStream stream minRevision sliceSize
-        let encodedEvents = commits |> Seq.collect extractEncodedEvents
-        let events = EncodedEventBatch(encodedEvents).chooseOfUnion<'a> () |> Seq.toList
+        let events = commits |> Seq.collect extractStorableEvents
         return events, sliceLastToken, nextMinRevision }
 
     member this.append stream token events = async {
@@ -108,8 +102,7 @@ type Store private (inner') =
             let commitHeaders = null
             commitId, commitDateTime, commitHeaders
         let metadata = commitMetadata() 
-        let encodedEvents = events |> Seq.map EncodedEvent.serializeUnionByCaseItemType 
-        do! appendToStream stream metadata token encodedEvents }
+        do! appendToStream stream metadata token events }
 
 module NesGateway =
     let createFromStore (inner:IStoreEvents) = 

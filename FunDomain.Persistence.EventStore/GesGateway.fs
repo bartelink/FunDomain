@@ -1,9 +1,11 @@
 ﻿namespace FunDomain.Persistence.EventStore
 
+open FunDomain
+
 /// This module implements AwaitTask for non generic Task
 /// <remarks>Should be unnecessary in F# 4 since as scheduled to be implemented in FSharp.Core</remarks>
 [<AutoOpen>]
-module AsyncExtensions =
+module private AsyncExtensions =
     open System
     open System.Threading.Tasks
     type Microsoft.FSharp.Control.Async with
@@ -26,7 +28,7 @@ open EventStore.ClientAPI
 
 /// Expose GES 3+'s Task Async (only) operations as F# functions yielding Async<'T>
 [<AutoOpen>]
-module EventStoreExtensions =
+module private EventStoreExtensions =
     type EventStore.ClientAPI.IEventStoreConnection with
         member this.AsyncConnect () = 
             Async.AwaitTask( this.ConnectAsync())
@@ -37,42 +39,35 @@ module EventStoreExtensions =
         member this.AsyncSubscribeToAll resolveLinkTos eventAppeared credentials =
             Async.AwaitTask <| this.SubscribeToAllAsync(resolveLinkTos, System.Action<_,_>(eventAppeared), null, credentials)
 
-open FunDomain.Persistence.Serialization
+[<AutoOpen>]
+module private EncodedEventMappingExtensions =
+    let toEventData (eventType,data) =
+        EventData(System.Guid.NewGuid(), eventType, (*isJson*)true, data, (*metadata*)null)
+    let toEncodedEvent (event:ResolvedEvent) = 
+        event.Event.EventType,event.Event.Data
 
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
 type Store private (inner') = 
     // Hoop jumping a la C++ pimpl pattern - if we don't do this, we're foisting an EventStore.Client package reference on all downstream users
     let inner : IEventStoreConnection = unbox inner'
 
-    let serialize event = 
-        let encoded = EncodedEvent.serializeUnionByCaseItemType event
-        EventData(System.Guid.NewGuid(), encoded.EventType, (*isJson*)true, encoded.Data, (*metadata*)null)
-
-    let deserialize (event:ResolvedEvent) = 
-        let encoded = { EventType = event.Event.EventType; Data = event.Event.Data }
-        encoded.deserializeUnionByCaseItemType ()
-
     static member internal wrap connection = Store( box connection)
 
-    member this.append streamId expectedVersion newEvents = async {
-        let serializedEvents = newEvents |> Seq.map serialize |> Array.ofSeq
+    member this.append streamId expectedVersion newEncodedEvents = async {
+        let serializedEvents = newEncodedEvents |> Seq.map toEventData |> Array.ofSeq
         return! inner.AsyncAppendToStream streamId expectedVersion serializedEvents }
 
     member this.read streamId version count = async {
         let! slice = inner.AsyncReadStreamEventsForward streamId version count (*resolveLinkTos*)true
         let nextSliceToken = if slice.IsEndOfStream then None else Some slice.NextEventNumber
 
-        let events = 
-            slice.Events 
-            |> Seq.choose deserialize
-            |> Seq.toList
-        
+        let events = slice.Events |> Seq.map toEncodedEvent
         return events, slice.LastEventNumber, nextSliceToken }
 
-    member this.subscribe<'a> (username,password) (projection:'a -> unit) =
+    member this.subscribe (username,password) (projection:CachingEventBatch -> unit) =
         inner.AsyncSubscribeToAll 
             (*resolveLinkTos*)true 
-            (fun _ e -> e |> deserialize |> Option.iter projection) 
+            (fun _ e -> CachingEventBatch( e |> toEncodedEvent |> Seq.singleton ) |> projection) 
             (SystemData.UserCredentials(username, password))
 
 module GesGateway =

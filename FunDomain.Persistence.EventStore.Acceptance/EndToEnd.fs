@@ -1,25 +1,23 @@
 ﻿module FunDomain.Persistence.EventStore.Acceptance.EndToEnd
 
-open FunDomain.Persistence.Fixtures // Logger, DirectionMonitor, fullGameCommands, gameTopicId, randomGameId
+open FunDomain.Persistence.Fixtures // Logger, DirectionMonitor, fullGameCommands, gameTopicId, randomGameId, createMonitorAndProjection
 
 open Uno // Card Builders
 open Uno.Game // Commands, handle
 
 open FunDomain // CommandHandler, Evolution.replay
-open FunDomain.Persistence.EventStore 
+open FunDomain.Persistence.EventStore // Store
 
 open Xunit
 open Swensen.Unquote
 
 let playCircuit (store:Store) = async {
-    let domainHandler = CommandHandler.createAsyncSliced (initial'()) evolve' handle 
+    let domainHandler = CommandHandler.create initial' evolve' handle 
 
-    let monitor = DirectionMonitor()
+    let monitor,projection = createMonitorAndProjection()
     let logger = Logger()
     let credentials = "admin", "changeit"
-    let! _ = store.subscribe credentials (fun evt ->
-        monitor.Post evt
-        logger.Post evt )
+    let! _ = store.subscribe credentials projection
     let persistingHandler = domainHandler store.read store.append
 
     let gameId = randomGameId ()

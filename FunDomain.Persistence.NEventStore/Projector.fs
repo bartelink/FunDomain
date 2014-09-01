@@ -1,5 +1,7 @@
 ﻿namespace FunDomain.Persistence.NEventStore
 
+open FunDomain
+
 open System.Threading
 
 type Projector( store:Store, sleepMs, projection ) = 
@@ -9,7 +11,10 @@ type Projector( store:Store, sleepMs, projection ) =
         MailboxProcessor.Start <|
             fun inbox ->
                 let rec loop token = async {
-                    let! nextToken = store.project projection token
+                    let cachingProjection events = 
+                        let batch = CachingEventBatch(events) 
+                        projection batch
+                    let! nextToken = store.project cachingProjection token
                     match nextToken with
                     | Some token -> 
                         return! loop token
@@ -21,4 +26,4 @@ type Projector( store:Store, sleepMs, projection ) =
                 async {
                     return! loop CheckpointToken.initial }
     member this.sleeping = empty.Publish
-    member this.Pulse = wakeEvent.Set >> ignore    
+    member this.Pulse = wakeEvent.Set >> ignore

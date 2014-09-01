@@ -2,6 +2,7 @@
 
 open Uno // Card Builders
 open Uno.Game // Commands, handle
+open FunDomain // CachingEventBatch
 
 type FlowEvents =
     | DirectionChanged of DirectionChanged
@@ -28,6 +29,17 @@ type DirectionMonitor() =
                     | DirectionChanged e -> dirs.[e.GameId] <- e.Direction }
     member this.Post = agent.Post
     member this.CurrentDirectionOfGame gameId = dirs.[gameId]
+
+let createMonitorAndProjection () =
+    let monitor = DirectionMonitor()
+    let logger = Logger()
+
+    let projection = (fun (batch:CachingEventBatch) ->
+        batch.mapToUnion () |> Seq.iter (fun evt ->
+            monitor.Post evt
+            logger.Post evt ))
+
+    monitor,projection
 
 let fullCircuitCommands gameId = [
     StartGame { GameId=gameId; PlayerCount=4; FirstCard=red 3 }

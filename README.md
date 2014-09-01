@@ -15,14 +15,15 @@ This should be considered a fork that will eventually expire - some ideas will h
 
 1. Demonstrates event type naming encoding scheme
 2. Demonstrates selective projection scheme (all but neutral to whether one is using NES or GES)
+3. Separates Event Encoding from Serialization
+4. Separates Serialization from Event Storage
 
 # Major TODOs
 
-1. Push more Serialization out of `NesGateway` (esp if/when v6 or later allows us to fiddle with the event Data directly)
-2. Further pursuit of generalized Command Processing strategies (outside of just rambling 'Acceptance Test' code)
-3. Further pursuit of generalized Projection Processing strategies (outside of just rambling 'Acceptance Test' code)
-4. Take out Package Restore when things have stabilised
-5. Experiment more with the [unquote based] test DSLs and/or layer on some wrappers
+1. Further pursuit of generalized Command Processing strategies (outside of just rambling 'Acceptance Test' code)
+2. Further pursuit of generalized Projection Processing strategies (outside of just rambling 'Acceptance Test' code)
+3. Take out Package Restore when things have stabilised
+4. Experiment more with the [unquote based] test DSLs and/or layer on some wrappers
 
 # Style notes vs FsUno.Prod
 

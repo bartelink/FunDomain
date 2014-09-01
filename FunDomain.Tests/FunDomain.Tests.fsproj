@@ -58,12 +58,10 @@
     <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
   </Target>
   <ItemGroup>
-    <Compile Include="..\FunDomain.Persistence\Serialization.fs">
-      <Link>Serialization.fs</Link>
-    </Compile>
-    <Compile Include="SerializationFacts.fs" />
     <None Include="app.config" />
     <None Include="packages.config" />
+    <Compile Include="SerializationFacts.fs" />
+    <Compile Include="EventBatchFacts.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
@@ -82,6 +80,13 @@
       <HintPath>..\packages\xunit.1.9.2\lib\net20\xunit.dll</HintPath>
       <Private>True</Private>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FunDomain\FunDomain.fsproj">
+      <Name>FunDomain</Name>
+      <Project>{b163b5c5-e0f9-4c92-a823-612f32d84693}</Project>
+      <Private>True</Private>
+    </ProjectReference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

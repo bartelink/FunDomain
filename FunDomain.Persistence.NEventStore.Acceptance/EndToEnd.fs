@@ -15,15 +15,11 @@ open Swensen.Unquote
 let gameTopicId id = {Bucket=None; StreamId=gameTopicId id }
 
 let playCircuit store = async {
-    let domainHandler = CommandHandler.createAsyncSliced (initial'()) evolve' handle 
+    let domainHandler = CommandHandler.create initial' evolve' handle 
 
-    let monitor = DirectionMonitor()
-    let logger = Logger()
+    let monitor, projection = createMonitorAndProjection ()
 
-    let projector = Projector( store, 10, (fun batch ->
-        batch.chooseOfUnion () |> Seq.iter (fun evt ->
-            monitor.Post evt
-            logger.Post evt)))
+    let projector = Projector( store, 10, projection)
 
     let persistingHandler = domainHandler store.read store.append
 
