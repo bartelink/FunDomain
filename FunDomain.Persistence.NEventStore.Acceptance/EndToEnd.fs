@@ -49,8 +49,8 @@ let [<Fact>] ``Can play a circuit and consume projection using NEventStore InMem
 // NB Requires a SQL Server Instance with a DB Created. Any SQL will do, but the app.config will be satisfied if you run ./CreateSqlLocalDb.ps1
 let [<Fact>] ``Can play a circuit and consume projection using NEventStore SqlPersistence`` () = Async.StartAsTask <| async {
     let connectionStringName = "UnoNes"
-    let perfCounterInstanceName = "UnoNes"
-    let store = NesGateway.createInMsSqlWithPerfCounters connectionStringName perfCounterInstanceName 
+    let store = NesGateway.createInMsSql connectionStringName 
+    store.executeDdlIfNecessary ()
 
     let! finalDirection = playCircuit store
 

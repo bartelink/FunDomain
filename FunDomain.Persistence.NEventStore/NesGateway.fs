@@ -86,6 +86,8 @@ type Store private (inner') =
 
     static member internal wrap persister = Store( box persister)
 
+    member this.executeDdlIfNecessary () = inner.Initialize()
+
     member this.project projection checkpointToken = async {
         let! batch = fetch checkpointToken
         let dispatchElements _ (checkpoint, elements) =
@@ -121,12 +123,10 @@ module NesGateway =
             .Build()
         |> createFromStore
 
-    let createInMsSqlWithPerfCounters (connectionName:string) perfCounterSetName = 
+    let createInMsSql (connectionName:string) = 
         Wireup.Init()
             .UsingSqlPersistence(connectionName)
             .WithDialect(new MsSqlDialect())
-            .InitializeStorageEngine()
-            .TrackPerformanceInstance(perfCounterSetName)
             .UsingJsonSerialization()
                 .Compress()
             .Build()

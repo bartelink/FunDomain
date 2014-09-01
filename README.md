@@ -18,7 +18,7 @@ This should be considered a fork that will eventually expire - some ideas will h
 
 # Major TODOs
 
-1. Push more Wireup out of `NesGateway` (esp if v6 or later allows us to fiddle with the event Data directly) (and identify opportunities to share terminology with GES equivalents)
+1. Push more Serialization out of `NesGateway` (esp if/when v6 or later allows us to fiddle with the event Data directly)
 2. Further pursuit of generalized Command Processing strategies (outside of just rambling 'Acceptance Test' code)
 3. Further pursuit of generalized Projection Processing strategies (outside of just rambling 'Acceptance Test' code)
 4. Take out Package Restore when things have stabilised
