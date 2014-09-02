@@ -14,12 +14,12 @@ type Event =
 /// Type representing current player turn; All operations should be encapsulated
 type Turn = { Player:int; PlayerCount:int; Direction:Direction } with
     static member start player count = { Player = player; PlayerCount = count; Direction = ClockWise }
-    static member empty = Turn.start 0 1
 
     member turn.next = 
+        let withPlayer player = { turn with Player = player }
         match turn.Direction with
-        | ClockWise -> { turn with Player = (turn.Player + 1) % turn.PlayerCount }
-        | CounterClockWise -> { turn with Player = (turn.Player + turn.PlayerCount - 1) % turn.PlayerCount } // the + count is here to avoid having negative result
+        | ClockWise -> withPlayer <| (turn.Player + 1) % turn.PlayerCount 
+        | CounterClockWise -> withPlayer <| (turn.Player + turn.PlayerCount - 1) % turn.PlayerCount // the + count is here to avoid having negative result
 
     member turn.skip = turn.next.next
     
@@ -35,24 +35,25 @@ type Turn = { Player:int; PlayerCount:int; Direction:Direction } with
             invalidArg "player" "The player value should be between 0 and player count"
         { turn with Player = player }
 
-/// State with initial+evolve as used by replay
-type State = { GameAlreadyStarted:bool; Turn:Turn; TopCard:Card } with
-    static member initial = { GameAlreadyStarted = false; Turn = Turn.empty; TopCard = DigitCard( Digit 0, Red) }
-    static member evolve state = function
-        | GameStarted e -> 
-            {   GameAlreadyStarted = true
-                Turn = Turn.start e.FirstPlayer e.PlayerCount 
-                TopCard = e.FirstCard }
-        | CardPlayed e ->
-            { state with
-                Turn = state.Turn.setPlayer e.NextPlayer
-                TopCard = e.Card }
-        | DirectionChanged e ->
-            { state with 
-                Turn = state.Turn.setDirection e.Direction }
-        | PlayedAtWrongTurn _ 
-        | PlayedWrongCard _ -> 
-            state
+/// State with evolve as used by play / replay
+type State = { Turn:Turn; TopCard:Card } with 
+    static member evolve state = 
+        match state with
+        | None -> 
+            function
+            | GameStarted e -> { Turn = Turn.start e.FirstPlayer e.PlayerCount; TopCard = e.FirstCard }
+            | _ -> failwith "need to start first"
+        | Some state -> 
+            function
+            | CardPlayed e -> 
+                { Turn = state.Turn.setPlayer e.NextPlayer; TopCard = e.Card }
+            | DirectionChanged e -> 
+                { state with Turn = state.Turn.setDirection e.Direction }
+            | PlayedAtWrongTurn _ 
+            | PlayedWrongCard _ -> 
+                state
+            | GameStarted _ -> 
+                failwith "illegal restart" 
 
 // Operations of the Game aggregate
 
@@ -70,24 +71,26 @@ let (|SameValue|_|) = function
     | KickBack _, KickBack _ -> Some ()
     | _ -> None
 
-let handle state = function
-    | StartGame c ->
-        if c.PlayerCount <= 2 then invalidArg "playerCount" "There should be at least 3 players"
-        if state.GameAlreadyStarted then invalidOp "The game cannot be started more than once"
+let handle = function
+    | None -> function
+        | StartGame c ->
+            if c.PlayerCount <= 2 then invalidArg "playerCount" "There should be at least 3 players"
     
-        let gameStarted firstPlayer = 
-            GameStarted { GameId = c.GameId; PlayerCount = c.PlayerCount; FirstCard = c.FirstCard; FirstPlayer = firstPlayer }
+            let gameStartedWithPlayer firstPlayer = 
+                GameStarted { GameId = c.GameId; PlayerCount = c.PlayerCount; FirstCard = c.FirstCard; FirstPlayer = firstPlayer }
  
-        match c.FirstCard with
-        | KickBack _ ->
-            [ gameStarted 0 
-              DirectionChanged { GameId = c.GameId; Direction = CounterClockWise } ]
-        | Skip _ -> [ gameStarted 1 ]
-        | _ -> [ gameStarted 0]
-    | PlayCard c ->
-        if state.Turn.Player <> c.Player then 
+            match c.FirstCard with
+            | KickBack _ ->
+                [ gameStartedWithPlayer 0 
+                  DirectionChanged { GameId = c.GameId; Direction = CounterClockWise } ]
+            | Skip _ -> [ gameStartedWithPlayer 1 ]
+            | _ -> [ gameStartedWithPlayer 0]
+        | _ -> invalidOp  "The game needs to be started first"
+    | Some state -> function
+        | StartGame _ -> invalidOp "The game cannot be started more than once"
+        | PlayCard c when state.Turn.Player <> c.Player ->
             [ PlayedAtWrongTurn { GameId = c.GameId; Player = c.Player; Card = c.Card } ]
-        else
+        | PlayCard c ->
             match c.Card, state.TopCard with
             | SameColor _ 
             | SameValue ->

@@ -12,7 +12,7 @@ open Xunit
 open Swensen.Unquote
 
 let playCircuit (store:Store) = async {
-    let domainHandler = CommandHandler.create initial' evolve' handle 
+    let domainHandler = CommandHandler.create play handle 
 
     let monitor,projection = createMonitorAndProjection()
     let logger = Logger()

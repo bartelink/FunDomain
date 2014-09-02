@@ -15,7 +15,7 @@ open Swensen.Unquote
 let gameTopicId id = {Bucket=None; StreamId=gameTopicId id }
 
 let playCircuit store = async {
-    let domainHandler = CommandHandler.create initial' evolve' handle 
+    let domainHandler = CommandHandler.create play handle 
 
     let monitor, projection = createMonitorAndProjection ()
 

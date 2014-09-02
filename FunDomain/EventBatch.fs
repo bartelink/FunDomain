@@ -48,10 +48,9 @@ module StorableEvent =
         eventType, data
 
 module EventBatch =
-    let toUnionList<'e> =
+    let toUnionSeq<'e> =
         Seq.map StorableEvent.toEncodedEvent
         >> Seq.choose EncodedEvent.deserializeToUnion<'e>
-        >> List.ofSeq
     let fromUnionList events =
         events 
         |> List.map EncodedEvent.serializeFromUnion
