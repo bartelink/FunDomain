@@ -19,25 +19,27 @@ type Logger() =
     member this.Post = agent.Post
         
 type DirectionMonitor() = 
-    let dirs = System.Collections.Generic.Dictionary<_,_> ()
+    // NB we can have multiple concurrent readers (and the single writer) hence this needs to be a concurrency-safe collection
+    let gameDirections = System.Collections.Concurrent.ConcurrentDictionary<_,_> () 
     let agent = 
         MailboxProcessor.Start <| fun inbox -> async {
             while true do
                 let! evt = inbox.Receive () 
                 evt |> function
-                    | GameStarted e -> dirs.[e.GameId] <- ClockWise
-                    | DirectionChanged e -> dirs.[e.GameId] <- e.Direction }
+                    | GameStarted e -> gameDirections.[e.GameId] <- ClockWise
+                    | DirectionChanged e -> gameDirections.[e.GameId] <- e.Direction }
     member this.Post = agent.Post
-    member this.CurrentDirectionOfGame gameId = dirs.[gameId]
+    member this.CurrentDirectionOfGame gameId = gameDirections.[gameId]
 
 let createMonitorAndProjection () =
     let monitor = DirectionMonitor()
     let logger = Logger()
 
-    let projection = (fun (batch:CachingEventBatch) ->
-        batch.mapToUnion () |> Seq.iter (fun evt ->
+    let projection (batch:CachingEventBatch) =
+        let dispatchFlowEvent evt =
             monitor.Post evt
-            logger.Post evt ))
+            logger.Post evt 
+        batch.mapToUnion () |> Seq.iter dispatchFlowEvent
 
     monitor,projection
 
