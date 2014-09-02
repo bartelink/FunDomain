@@ -47,7 +47,7 @@ module StorableEvent =
     let ofEncodedEvent ({ EventType = eventType; Data = data }) = 
         eventType, data
 
-module EventBatch =
+module EventEncoder =
     let toUnionSeq<'e> =
         Seq.map StorableEvent.toEncodedEvent
         >> Seq.choose EncodedEvent.deserializeToUnion<'e>

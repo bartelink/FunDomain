@@ -11,7 +11,7 @@ let create
             let! events, sliceLastToken, nextMinEventNumber = read stream version sliceSize
             let newState = 
                 events 
-                |> EventBatch.toUnionSeq<'event>
+                |> EventEncoder.toUnionSeq<'event>
                 |> play Seq.fold state
             match nextMinEventNumber with
             | None -> return sliceLastToken, newState
@@ -21,6 +21,6 @@ let create
     fun topicId command -> async {
         let! initialVersion, state = load topicId 
         do! handle state command
-            |> EventBatch.fromUnionList
+            |> EventEncoder.fromUnionList
             |> append topicId initialVersion
             |> Async.Ignore }
