@@ -17,6 +17,7 @@ This should be considered a fork that will eventually expire - some ideas will h
 2. Demonstrates selective projection scheme (all but neutral to whether one is using NES or GES)
 3. Separates Event Encoding from Serialization
 4. Separates Serialization from Event Storage
+5. Does not rely on `empty` State elements or `initial` method on State - `state` arguments supplied to `handle` and `evolve` are `option`s
 
 # Major TODOs
 
