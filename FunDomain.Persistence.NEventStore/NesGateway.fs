@@ -16,7 +16,18 @@ type StreamId = { Bucket:string option; StreamId:string }
 type CheckpointToken = { Token:string option } with 
     static member initial = { Token = None }
 
-type StorableEvent = (*eventType*)string*(*data*)byte[]
+// NB Tuple signature used here is shared with CommandHandler (and GesGateway)
+[<AutoOpen>]
+module private GatewayEventTypeAndDataMapping =
+    let toEventMessage (eventType:string,data:byte[]) =
+        let headers = Dictionary<_,_>(capacity=1)
+        headers.["type"] <- box eventType
+        let body = box data
+        EventMessage(Headers=headers, Body=body)
+
+    let toGatewayEventTypeAndData (commit:ICommit) =
+        let extractEncoded (em:EventMessage) = em.Headers.["type"] :?> string, em.Body |> unbox
+        commit.Events |> Seq.map extractEncoded 
 
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
 type Store private (inner') = 
@@ -48,19 +59,9 @@ type Store private (inner') =
         | LastCommitToken token -> 
             commits, token, None }
 
-    let generateEventMessage (eventType:string,data:byte[]) =
-        let headers = Dictionary<_,_>(capacity=1)
-        headers.["type"] <- box eventType
-        let body = box data
-        EventMessage(Headers=headers, Body=body)
-
-    let extractStorableEvents (commit:ICommit) : StorableEvent seq =
-        let extractEncoded (em:EventMessage) = em.Headers.["type"] :?> string, em.Body |> unbox
-        commit.Events |> Seq.map extractEncoded 
-
     let appendToStream {Bucket=bucketId; StreamId=streamId} streamMeta token encodedEvents = async {
         let commitId, commitStamp, commitHeaders = streamMeta
-        let eventMessages = encodedEvents |> Seq.map generateEventMessage
+        let eventMessages = encodedEvents |> Seq.map toEventMessage
         let attempt = 
             CommitAttempt(
                 bucketId |> defaultBucket, streamId, 
@@ -76,7 +77,7 @@ type Store private (inner') =
         return poll token
         |> Seq.map (fun commit -> 
             let token = { Token = Some commit.CheckpointToken }
-            let encodedEvents = commit |> extractStorableEvents
+            let encodedEvents = commit |> toGatewayEventTypeAndData
             token, encodedEvents) }
 
     static member internal wrap persister = Store( box persister)
@@ -92,7 +93,7 @@ type Store private (inner') =
 
     member this.read stream minRevision sliceSize = async {
         let! commits, sliceLastToken, nextMinRevision = readStream stream minRevision sliceSize
-        let events = commits |> Seq.collect extractStorableEvents
+        let events = commits |> Seq.collect toGatewayEventTypeAndData
         return events, sliceLastToken, nextMinRevision }
 
     member this.append stream token events = async {

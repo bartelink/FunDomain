@@ -39,11 +39,12 @@ module private EventStoreExtensions =
         member this.AsyncSubscribeToAll resolveLinkTos eventAppeared credentials =
             Async.AwaitTask <| this.SubscribeToAllAsync(resolveLinkTos, System.Action<_,_>(eventAppeared), null, credentials)
 
+// NB Tuple signature used here is shared with CommandHandler (and NesGateway)
 [<AutoOpen>]
-module private EncodedEventMappingExtensions =
+module private NativeEventStorageMapping =
     let toEventData (eventType,data) =
         EventData(System.Guid.NewGuid(), eventType, (*isJson*)true, data, (*metadata*)null)
-    let toEncodedEvent (event:ResolvedEvent) = 
+    let toGatewayEventTypeAndData (event:ResolvedEvent) = 
         event.Event.EventType,event.Event.Data
 
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
@@ -61,14 +62,16 @@ type Store private (inner') =
         let! slice = inner.AsyncReadStreamEventsForward streamId version count (*resolveLinkTos*)true
         let nextSliceToken = if slice.IsEndOfStream then None else Some slice.NextEventNumber
 
-        let events = slice.Events |> Seq.map toEncodedEvent
+        let events = slice.Events |> Seq.map toGatewayEventTypeAndData
         return events, slice.LastEventNumber, nextSliceToken }
 
-    member this.subscribe (username,password) (projection:CachingEventBatch -> unit) =
-        inner.AsyncSubscribeToAll 
-            (*resolveLinkTos*)true 
-            (fun _ e -> CachingEventBatch( e |> toEncodedEvent |> Seq.singleton ) |> projection) 
-            (SystemData.UserCredentials(username, password))
+    member this.subscribe (username,password) projection =
+        let wrapAndProject _ e =
+            let singleItemBatch = EventBatch([|toGatewayEventTypeAndData e|]) 
+            singleItemBatch |> projection
+
+        let credentials = SystemData.UserCredentials(username, password)
+        inner.AsyncSubscribeToAll (*resolveLinkTos*)true wrapAndProject credentials
 
 module GesGateway =
     let create tcpEndpoint = async {

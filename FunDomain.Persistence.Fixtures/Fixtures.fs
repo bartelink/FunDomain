@@ -35,7 +35,7 @@ let createMonitorAndProjection () =
     let monitor = DirectionMonitor()
     let logger = Logger()
 
-    let projection (batch:CachingEventBatch) =
+    let projection (batch:EventBatch) =
         let dispatchFlowEvent evt =
             monitor.Post evt
             logger.Post evt 

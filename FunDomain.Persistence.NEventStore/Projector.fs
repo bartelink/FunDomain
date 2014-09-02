@@ -12,7 +12,7 @@ type Projector( store:Store, sleepMs, projection ) =
             fun inbox ->
                 let rec loop token = async {
                     let cachingProjection events = 
-                        let batch = CachingEventBatch(events) 
+                        let batch = EventBatch(events) 
                         projection batch
                     let! nextToken = store.project cachingProjection token
                     match nextToken with

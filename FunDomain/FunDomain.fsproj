@@ -62,9 +62,10 @@
     <Compile Include="Serialization.fs">
       <Link>Serialization.fs</Link>
     </Compile>
-    <Compile Include="EventBatch.fs" />
+    <Compile Include="EncodedEvent.fs" />
     <Compile Include="CommandHandler.fs" />
     <Content Include="packages.config" />
+    <Compile Include="EventBatch.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
