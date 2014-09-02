@@ -5,7 +5,7 @@ open FunDomain.Persistence.Fixtures // Logger, DirectionMonitor, fullGameCommand
 open Uno // Card Builders
 open Uno.Game // Commands, handle
 
-open FunDomain // CommandHandler, Evolution.replay
+open FunDomain // CommandHandler, Evolution.play
 open FunDomain.Persistence.NEventStore // Projector, StreamId
 
 open Xunit
@@ -18,7 +18,6 @@ let playCircuit store = async {
     let domainHandler = CommandHandler.create play handle 
 
     let monitor, projection = createMonitorAndProjection ()
-
     let projector = Projector( store, 10, projection)
 
     let persistingHandler = domainHandler store.read store.append
