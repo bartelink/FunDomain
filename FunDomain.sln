@@ -15,12 +15,6 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Uno.Tests", "Samples\Uno.Te
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Tests", "FunDomain.Tests\FunDomain.Tests.fsproj", "{2B266883-0FF6-4F17-9D8B-5F90B6A93B15}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{922D0E98-05A4-4878-9A37-B7E6BB16C239}"
-	ProjectSection(SolutionItems) = preProject
-		.nuget\NuGet.Config = .nuget\NuGet.Config
-		.nuget\NuGet.targets = .nuget\NuGet.targets
-	EndProjectSection
-EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.EventStore", "FunDomain.Persistence.EventStore\FunDomain.Persistence.EventStore.fsproj", "{7F6B835C-7627-46A8-88DD-AF4C9EADA0EE}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.EventStore.Acceptance", "FunDomain.Persistence.EventStore.Acceptance\FunDomain.Persistence.EventStore.Acceptance.fsproj", "{55B61236-4168-4FA8-92E3-D298897F1979}"

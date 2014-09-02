@@ -50,21 +50,6 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
-  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
-  </Target>
-  <ItemGroup>
-    <Content Include="packages.config" />
-    <Content Include="app.config" />
-    <Compile Include="..\FunDomain.Persistence.Fixtures\Fixtures.fs">
-      <Link>Fixtures.fs</Link>
-    </Compile>
-    <Compile Include="EndToEnd.fs" />
-  </ItemGroup>
   <ItemGroup>
     <Reference Include="EventStore.ClientAPI">
       <HintPath>..\packages\EventStore.Client.3.0.0-rc9\lib\net40\EventStore.ClientAPI.dll</HintPath>
@@ -99,6 +84,14 @@
       <Project>{4ee8261c-4629-4b28-a141-9c210c5235a9}</Project>
       <Private>True</Private>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="packages.config" />
+    <Content Include="app.config" />
+    <Compile Include="..\FunDomain.Persistence.Fixtures\Fixtures.fs">
+      <Link>Fixtures.fs</Link>
+    </Compile>
+    <Compile Include="EndToEnd.fs" />
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
