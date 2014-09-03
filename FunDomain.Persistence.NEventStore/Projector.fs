@@ -11,10 +11,8 @@ type Projector( store:Store, sleepMs, projection ) =
         MailboxProcessor.Start <|
             fun inbox ->
                 let rec loop token = async {
-                    let cachingProjection events = 
-                        let batch = EventBatch(events) 
-                        projection batch
-                    let! nextToken = store.project cachingProjection token
+                    let project events = projection <| EventBatch events
+                    let! nextToken = store.project token project
                     match nextToken with
                     | Some token -> 
                         return! loop token

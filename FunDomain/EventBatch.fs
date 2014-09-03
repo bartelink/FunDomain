@@ -1,8 +1,6 @@
 ﻿namespace FunDomain
 
-type EventBatch(gatewayEventTypeAndDatas) =
-    let cached = Seq.cache gatewayEventTypeAndDatas
+type EventBatch(encodedEvents) =
+    let cached = Seq.cache encodedEvents
     member this.mapToUnion<'e> () =
-        cached 
-        |> Seq.map EncodedEvent.ofGatewayEventTypeAndData
-        |> Seq.choose EncodedEvent.deserializeToUnion<'e>
+        cached |> Seq.choose EncodedEvent.deserializeUnionByCaseItemTypeName<'e>

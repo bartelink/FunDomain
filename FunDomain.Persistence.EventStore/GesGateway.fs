@@ -9,14 +9,15 @@ module private AsyncExtensions =
     open System
     open System.Threading.Tasks
     type Microsoft.FSharp.Control.Async with
-        static member Raise(ex) = Async.FromContinuations(fun (_,econt,_) -> econt ex)
+        static member Raise ex = Async.FromContinuations(fun (_,econt,_) -> econt ex)
 
         static member AwaitTask (t:Task) =
             let tcs = new TaskCompletionSource<unit>(TaskContinuationOptions.None)
-            t.ContinueWith((fun _ -> 
-                if t.IsFaulted then tcs.SetException t.Exception
-                elif t.IsCanceled then tcs.SetCanceled ()
-                else tcs.SetResult () ), TaskContinuationOptions.ExecuteSynchronously) |> ignore
+            let propagateToTcs _ =
+                if t.IsFaulted      then    tcs.SetException t.Exception
+                elif t.IsCanceled   then    tcs.SetCanceled ()
+                else tcs.SetResult          () 
+            t.ContinueWith(propagateToTcs, TaskContinuationOptions.ExecuteSynchronously) |> ignore
             async {
                 try
                     do! Async.AwaitTask tcs.Task
@@ -39,14 +40,6 @@ module private EventStoreExtensions =
         member this.AsyncSubscribeToAll resolveLinkTos eventAppeared credentials =
             Async.AwaitTask <| this.SubscribeToAllAsync(resolveLinkTos, System.Action<_,_>(eventAppeared), null, credentials)
 
-// NB Tuple signature used here is shared with CommandHandler (and NesGateway)
-[<AutoOpen>]
-module private NativeEventStorageMapping =
-    let toEventData (eventType,data) =
-        EventData(System.Guid.NewGuid(), eventType, (*isJson*)true, data, (*metadata*)null)
-    let toGatewayEventTypeAndData (event:ResolvedEvent) = 
-        event.Event.EventType,event.Event.Data
-
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
 type Store private (inner') = 
     // Hoop jumping a la C++ pimpl pattern - if we don't do this, we're foisting an EventStore.Client package reference on all downstream users
@@ -54,24 +47,21 @@ type Store private (inner') =
 
     static member internal wrap connection = Store( box connection)
 
-    member this.append streamId expectedVersion newEncodedEvents = async {
-        let serializedEvents = newEncodedEvents |> Seq.map toEventData |> Array.ofSeq
-        return! inner.AsyncAppendToStream streamId expectedVersion serializedEvents }
+    member this.append streamId expectedVersion newEncodedEvents = 
+        inner.AsyncAppendToStream streamId expectedVersion 
+            [| for e in newEncodedEvents -> EventData(System.Guid.NewGuid(), e.EventType, (*isJson*)true, e.Data, (*metadata*)null) |]
 
     member this.read streamId version count = async {
         let! slice = inner.AsyncReadStreamEventsForward streamId version count (*resolveLinkTos*)true
         let nextSliceToken = if slice.IsEndOfStream then None else Some slice.NextEventNumber
 
-        let events = slice.Events |> Seq.map toGatewayEventTypeAndData
+        let events = seq { for e in slice.Events -> { EventType = e.Event.EventType; Data = e.Event.Data } }
         return events, slice.LastEventNumber, nextSliceToken }
 
-    member this.subscribe (username,password) projection =
-        let wrapAndProject _ e =
-            let singleItemBatch = EventBatch([|toGatewayEventTypeAndData e|]) 
-            singleItemBatch |> projection
-
-        let credentials = SystemData.UserCredentials(username, password)
-        inner.AsyncSubscribeToAll (*resolveLinkTos*)true wrapAndProject credentials
+    member this.subscribe (username, password) projection =
+        inner.AsyncSubscribeToAll (*resolveLinkTos*)true 
+            (fun _ e -> projection <| EventBatch [| { EventType = e.Event.EventType; Data = e.Event.Data } |]) 
+            (SystemData.UserCredentials(username, password))
 
 module GesGateway =
     let create tcpEndpoint = async {
