@@ -14,12 +14,14 @@ type Logger() =
             while true do
                 let! evt = inbox.Receive () 
                 evt |> function
-                    | GameStarted { GameId = GameId no } -> printfn "Started: %i" no
-                    | DirectionChanged { GameId = GameId no; Direction = direction } -> printfn "Game %i direction is now: %A" no direction }
+                    | GameStarted { GameId = GameId no } -> 
+                        printfn "Started: %i" no
+                    | DirectionChanged { GameId = GameId no; Direction = direction } -> 
+                        printfn "Game %i direction is now: %A" no direction }
     member this.Post = agent.Post
         
 type DirectionMonitor() = 
-    // NB we can have multiple concurrent readers (and the single writer) hence this needs to be a concurrency-safe collection
+    // NB we can have multiple concurrent readers (+single writer) hence this needs to be a concurrency-safe collection
     let gameDirections = System.Collections.Concurrent.ConcurrentDictionary<_,_> () 
     let agent = 
         MailboxProcessor.Start <| fun inbox -> async {

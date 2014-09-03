@@ -1,6 +1,6 @@
 ﻿module FunDomain.Persistence.EventStore.Acceptance.EndToEnd
 
-open FunDomain.Persistence.Fixtures // Logger, DirectionMonitor, fullGameCommands, gameTopicId, randomGameId, createMonitorAndProjection
+open FunDomain.Persistence.Fixtures // fullGameCommands, gameTopicId, randomGameId, createMonitorAndProjection
 
 open Uno // Card Builders
 open Uno.Game // Commands, handle

@@ -32,7 +32,7 @@ module private EncodedEventMapping =
 
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
 type Store private (inner') = 
-    // Hoop jumping a la C++ pimpl pattern - if we don't do this, we're foisting an NEventStore package reference on all downstream users
+    // Hoop jumping a la C++ pimpl pattern to avoid foisting an NEventStore package reference consumers
     let inner : IPersistStreams = unbox inner'
     
     let defaultBucket bucketId = defaultArg bucketId "default"

@@ -1,7 +1,9 @@
 ﻿module FunDomain.CommandHandler
 
 let create 
-        (play:(('state option->'event->'state option)->'state option->'event seq->'state option)->'state option->'event seq->'state option)
+        (play:
+            (('state option->'event->'state option)->'state option->'event seq->'state option) // Any XX.fold function
+            ->'state option->'event seq->'state option)
         (handle:'state option->'command->('event list))
         (read:'streamId->int->int->Async<EncodedEvent seq*'token*int option>)
         (append:'streamId->'token->EncodedEvent list->Async<'r>) =

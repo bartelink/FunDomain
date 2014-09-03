@@ -2,6 +2,8 @@
 
 open FunDomain
 
+open System
+
 /// This module implements AwaitTask for non generic Task
 /// <remarks>Should be unnecessary in F# 4 since as scheduled to be implemented in FSharp.Core</remarks>
 [<AutoOpen>]
@@ -38,18 +40,19 @@ module private EventStoreExtensions =
         member this.AsyncReadStreamEventsForward stream start count resolveLinkTos =
             Async.AwaitTask <| this.ReadStreamEventsForwardAsync(stream, start, count, resolveLinkTos)
         member this.AsyncSubscribeToAll resolveLinkTos eventAppeared credentials =
-            Async.AwaitTask <| this.SubscribeToAllAsync(resolveLinkTos, System.Action<_,_>(eventAppeared), null, credentials)
+            Async.AwaitTask <| this.SubscribeToAllAsync(resolveLinkTos, Action<_,_>(eventAppeared), null, credentials)
 
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
 type Store private (inner') = 
-    // Hoop jumping a la C++ pimpl pattern - if we don't do this, we're foisting an EventStore.Client package reference on all downstream users
+    // Hoop jumping a la C++ pimpl pattern to avoid foisting an EventStore.Client package reference on consumers
     let inner : IEventStoreConnection = unbox inner'
 
     static member internal wrap connection = Store( box connection)
 
     member this.append streamId expectedVersion newEncodedEvents = 
+        let isJson, metadata = true, null
         inner.AsyncAppendToStream streamId expectedVersion 
-            [| for e in newEncodedEvents -> EventData(System.Guid.NewGuid(), e.EventType, (*isJson*)true, e.Data, (*metadata*)null) |]
+            [| for e in newEncodedEvents -> EventData(Guid.NewGuid(), e.EventType, isJson, e.Data, metadata) |]
 
     member this.read streamId version count = async {
         let! slice = inner.AsyncReadStreamEventsForward streamId version count (*resolveLinkTos*)true

@@ -1,6 +1,6 @@
 ﻿module FunDomain.Persistence.NEventStore.Acceptance.EndToEnd
 
-open FunDomain.Persistence.Fixtures // Logger, DirectionMonitor, fullGameCommands, gameTopicId, randomGameId
+open FunDomain.Persistence.Fixtures // fullGameCommands, gameTopicId, randomGameId, createMonitorAndProjection
 
 open Uno // Card Builders
 open Uno.Game // Commands, handle
@@ -34,15 +34,16 @@ let playCircuit store = async {
 
     return monitor.CurrentDirectionOfGame gameId }
 
-let [<Fact>] ``Can play a circuit and consume projection using NEventStore InMemory`` () = Async.StartAsTask <| async {
+let [<Fact>] ``Can play a circuit and consume projection using NES InMemory`` () = Async.StartAsTask <| async {
     let store = NesGateway.createInMemory ()
 
     let! finalDirection = playCircuit store
 
     test <@ CounterClockWise = finalDirection @> } 
 
-// NB Requires a SQL Server Instance with a DB Created. Any SQL will do, but the app.config will be satisfied if you run ./CreateSqlLocalDb.ps1
-let [<Fact>] ``Can play a circuit and consume projection using NEventStore SqlPersistence`` () = Async.StartAsTask <| async {
+// NB Requires a SQL Server Instance with a DB Created
+// Any SQL server version will do, but the app.config OOTB will be satisfied if you run ./CreateSqlLocalDb.ps1
+let [<Fact>] ``Can play a circuit and consume projection using NES SqlPersistence`` () = Async.StartAsTask <| async {
     let connectionStringName = "UnoNes"
     let store = NesGateway.createInMsSql connectionStringName 
     store.executeDdlIfNecessary ()
