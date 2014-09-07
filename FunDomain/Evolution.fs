@@ -2,15 +2,18 @@
 
 [<AutoOpen>]
 module Evolution =
-    // Evolves the State a single step along a trajectory using the convention of an evolve function on the State type
-    let inline private evolve' state =
-        let evolve state = (^S : (static member evolve: ^S option -> (^E -> ^S)) state)
-        evolve state
-    
-    // Folds a collection of events into a state using a supplied fold function
-    let inline play (fold:('s option->'e->'s option)->'s option->'es->'s option) state =
-        fold (fun s e -> Some <| evolve' s e) state
-        
-    // Evolves State with the supplied events as the evolution parameter per step
+    // Obtains the initial state of the trajectory for a State build-up
+    // requires an 'initial' static member function on the State type
+    let inline initial' (): ^state =
+        (^state: (static member initial: ^state) ()) 
+
+    // Evolves the State one step with 'event' as the 'evolution parameter'
+    // requires an 'evolve' static member function on the State type
+    let inline evolve' (state:^state) (event:'event) =
+        (^state: (static member evolve: ^state->(^event-> ^state)) state) event
+
+    // Builds State with nodes of 'events' as trajectory's evolution parameters
+    // requires 'inital' and 'evolve' static member function on the State type
     let inline replay events =
-        play List.fold None events
+        let initialState = initial'()
+        List.fold evolve' initialState events

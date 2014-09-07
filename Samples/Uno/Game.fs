@@ -39,23 +39,28 @@ type Turn = { Player:int; PlayerCount:int; Direction:Direction } with
             invalidArg "player" "The player value should be between 0 and player count"
         turn.withPlayer player
 
-/// State with evolve as used by play / replay
-type State = { Turn:Turn; TopCard:Card } with 
-    static member evolve state = 
-        match state with
-        | None -> 
-            function
-            | GameStarted e -> { Turn = Turn.start e.FirstPlayer e.PlayerCount; TopCard = e.FirstCard }
+/// State with initial / evolve as required by Evolution.replay
+type PlayState = { Turn:Turn; TopCard:Card }
+type State = 
+    | Initial
+    | Playing of PlayState with
+    static member initial = Initial
+    static member evolve position =
+        match position with  
+        | Initial -> function
+            | GameStarted e -> Playing { 
+                Turn = Turn.start e.FirstPlayer e.PlayerCount
+                TopCard = e.FirstCard } 
             | _ -> failwith "need to start first"
-        | Some state -> 
-            function
-            | CardPlayed e -> 
-                { Turn = state.Turn.setPlayer e.NextPlayer; TopCard = e.Card }
-            | DirectionChanged e -> 
-                { state with Turn = state.Turn.setDirection e.Direction }
+        | Playing s -> function
+            | CardPlayed e -> Playing { 
+                Turn = s.Turn.setPlayer e.NextPlayer
+                TopCard = e.Card }
+            | DirectionChanged e -> Playing { 
+                s with Turn = s.Turn.setDirection e.Direction }
             | PlayedAtWrongTurn _ 
             | PlayedWrongCard _ -> 
-                state
+                position
             | GameStarted _ -> 
                 failwith "illegal restart" 
 
@@ -76,7 +81,7 @@ let (|SameValue|_|) = function
     | _ -> None
 
 let handle = function
-    | None -> function
+    | Initial -> function
         | StartGame c ->
             if c.PlayerCount <= 2 then invalidArg "playerCount" "There should be at least 3 players"
     
@@ -90,7 +95,7 @@ let handle = function
             | Skip _ -> [ gameStartedWithPlayer 1 ]
             | _ -> [ gameStartedWithPlayer 0]
         | _ -> invalidOp  "The game needs to be started first"
-    | Some state -> function
+    | Playing state -> function
         | PlayCard c when state.Turn.Player <> c.Player ->
             [ PlayedAtWrongTurn { GameId = c.GameId; Player = c.Player; Card = c.Card } ]
         | PlayCard c ->
