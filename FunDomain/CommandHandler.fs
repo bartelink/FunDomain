@@ -5,17 +5,16 @@ let inline create
         (read:'streamId->int->int->Async<EncodedEvent seq*'token*int option>)
         (append:'streamId->'token->EncodedEvent list->Async<'r>) =
     let load stream =
-        let rec fold state version = async {
+        let rec fold currentState version = async {
             let sliceSize = 500
             let! events, token, nextVersion = read stream version sliceSize
-            let updatedPosition = 
+            let updatedState = 
                 events 
                 |> Seq.choose EncodedEvent.deserializeUnionByCaseItemTypeName<'event>
-                |> List.ofSeq
-                |> List.fold evolve' state
+                |> Seq.fold evolve' currentState
             match nextVersion with
-            | None -> return token, updatedPosition
-            | Some minVersion -> return! fold updatedPosition minVersion }
+            | None -> return token, updatedState
+            | Some minVersion -> return! fold updatedState minVersion }
         let initialState = initial' ()
         fold initialState 0
 
