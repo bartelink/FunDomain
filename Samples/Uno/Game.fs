@@ -45,8 +45,8 @@ type State =
     | Initial
     | Playing of PlayState with
     static member initial = Initial
-    static member evolve position =
-        match position with  
+    member this.evolve = 
+        match this with
         | Initial -> function
             | GameStarted e -> Playing { 
                 Turn = Turn.start e.FirstPlayer e.PlayerCount
@@ -60,7 +60,7 @@ type State =
                 s with Turn = s.Turn.setDirection e.Direction }
             | PlayedAtWrongTurn _ 
             | PlayedWrongCard _ -> 
-                position
+                this
             | GameStarted _ -> 
                 failwith "illegal restart" 
 

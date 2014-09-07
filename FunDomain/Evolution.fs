@@ -10,7 +10,7 @@ module Evolution =
     // Evolves the State one step with 'event' as the 'evolution parameter'
     // requires an 'evolve' static member function on the State type
     let inline evolve' (state:^state) (event:'event) =
-        (^state: (static member evolve: ^state->(^event-> ^state)) state) event
+        (^state: (member evolve: (^event-> ^state)) state) event
 
     // Builds State with nodes of 'events' as trajectory's evolution parameters
     // requires 'inital' and 'evolve' static member function on the State type
