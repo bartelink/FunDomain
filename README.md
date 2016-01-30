@@ -1,6 +1,6 @@
 # What is this?
 
-The code here is a fork of [Jérémie Chassaing](http://twitter.com/thinkb4coding)'s [FsUno.Prod](https://github.com/thinkbeforecoding/FsUno.Prod) 
+The code here is a fork of [Jérémie Chassaing](http://twitter.com/thinkb4coding)'s [FsUno.Prod](https://github.com/thinkbeforecoding/FsUno.Prod)
 Functional Event Sourcing sample.
 
 NB be sure to read the [FsUno.Prod Journey](http://thinkbeforecoding.github.io/FsUno.Prod/).
@@ -12,6 +12,10 @@ _Most importantly_, it contains [NEventStore](https://github.com/NEventStore/NEv
 As part of this, the Command Handler and other aspects have been revised to be able to work consistenly across both GES and NES (and assumes stores to be `async`).
 
 **NB THIS IS ONLY A FORK - while most ideas will hopefully make it in (as issues/PRs) into `FsUno.Prod`, the aim continues to be to have the actual showcase be `FsUno.Prod`**
+
+# Building
+
+Run `./build.cmd` to verify clean build and/or restore packages
 
 # Feature Notes vs FsUno.Prod
 
@@ -26,8 +30,8 @@ As part of this, the Command Handler and other aspects have been revised to be a
 
 1. Further pursuit of generalized Command Processing strategies (outside of just rambling 'Acceptance Test' code)
 	e.g. enriching commands etc.
-2. Further pursuit of generalized Projection Processing strategies inc 
-	e.g. awaiting in-memory projection completion 
+2. Further pursuit of generalized Projection Processing strategies inc
+	e.g. awaiting in-memory projection completion
 3. Experiment more with the [unquote based] test DSLs and/or layer on some wrappers
 4. Expose access to store-specific headers etc.
 

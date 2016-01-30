@@ -3,6 +3,7 @@
 open FunDomain
 
 open System
+open System.Net
 
 /// This module implements AwaitTask for non generic Task
 /// <remarks>Should be unnecessary in F# 4 since as scheduled to be implemented in FSharp.Core</remarks>
@@ -67,7 +68,7 @@ type Store private (inner') =
             (SystemData.UserCredentials(username, password))
 
 module GesGateway =
-    let create tcpEndpoint = async {
+    let create (tcpEndpoint: IPEndPoint) = async {
         let storeConn = EventStoreConnection.Create tcpEndpoint
         do! storeConn.AsyncConnect()
         return storeConn |> Store.wrap }

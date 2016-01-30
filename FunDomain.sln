@@ -1,8 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{E6B5B493-7BD0-46F3-A52B-25698A127BC3}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
+	EndProjectSection
+EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.NEventStore", "FunDomain.Persistence.NEventStore\FunDomain.Persistence.NEventStore.fsproj", "{7A26B0DC-7834-497A-9E88-91D1FC15E10B}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.NEventStore.Acceptance", "FunDomain.Persistence.NEventStore.Acceptance\FunDomain.Persistence.NEventStore.Acceptance.fsproj", "{483336F5-083A-49C1-AE4B-A3E7DDCD3E60}"
@@ -18,6 +24,17 @@ EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.EventStore", "FunDomain.Persistence.EventStore\FunDomain.Persistence.EventStore.fsproj", "{7F6B835C-7627-46A8-88DD-AF4C9EADA0EE}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FunDomain.Persistence.EventStore.Acceptance", "FunDomain.Persistence.EventStore.Acceptance\FunDomain.Persistence.EventStore.Acceptance.fsproj", "{55B61236-4168-4FA8-92E3-D298897F1979}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B827F641-0ED0-474D-94FB-03BD85071E83}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".build", ".build", "{11FD159C-B533-4EAB-869E-615A29E84B6E}"
+	ProjectSection(SolutionItems) = preProject
+		build.cmd = build.cmd
+		build.fsx = build.fsx
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
