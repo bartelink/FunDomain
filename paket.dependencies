@@ -1,0 +1,9 @@
+source https://www.nuget.org/api/v2/
+
+nuget FAKE
+nuget EventStore.Client
+nuget NEventStore
+nuget Newtonsoft.Json
+nuget Unquote
+nuget xunit
+nuget xunit.runner.visualstudio

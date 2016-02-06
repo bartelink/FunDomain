@@ -175,3 +175,6 @@ FakesAssemblies/
 
 packages/
 .artifacts/
+.fake
+.vs
+.paket/paket.exe
