@@ -1,9 +1,16 @@
 source https://www.nuget.org/api/v2/
 
-nuget FAKE
+framework >= net45
+
+# Component dependencies
 nuget EventStore.Client
 nuget NEventStore
 nuget Newtonsoft.Json
+
+# Test dependencies
 nuget Unquote
 nuget xunit
 nuget xunit.runner.visualstudio
+
+# Build tools
+nuget FAKE
