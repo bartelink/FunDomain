@@ -1,26 +1,36 @@
 ﻿module FunDomain.CommandHandler
 
-let inline create
-        (handle:'state->'command->('event list))
-        (read:'streamId->int->int->Async<EncodedEvent seq*'token*int option>)
-        (append:'streamId->'token->EncodedEvent list->Async<'r>) =
-    let load stream =
-        let rec fold currentState version = async {
-            let sliceSize = 500
-            let! events, token, nextVersion = read stream version sliceSize
-            let updatedState = 
-                events 
-                |> Seq.choose EncodedEvent.deserializeUnionByCaseItemTypeName<'event>
-                |> Seq.fold evolve' currentState
-            match nextVersion with
-            | None -> return token, updatedState
-            | Some minVersion -> return! fold updatedState minVersion }
-        let initialState = initial' ()
-        fold initialState 0
+let inline evolve state = Seq.fold evolve' state 
 
-    fun topicId command -> async {
-        let! initialVersion, state = load topicId 
-        do! handle state command
-            |> List.map EncodedEvent.serializeUnionByCaseItemTypeName
-            |> append topicId initialVersion
-            |> Async.Ignore }
+let inline load 
+        (read : 'streamId -> int -> int -> Async<EncodedEvent seq * 'token * int option>) 
+        topicId : Async<'token*'state> = 
+    let rec fold version (currentState:'state) = 
+        async { 
+            let sliceSize = 500
+            let! encodedEvents, token, nextVersion = read topicId version sliceSize
+            let updatedState = 
+                encodedEvents
+                |> Seq.choose EncodedEvent.deserializeUnionByCaseItemTypeName<'event>
+                |> evolve currentState
+            match nextVersion with
+            | Some minVersion -> return! fold minVersion updatedState
+            | None -> return token, updatedState }
+    fold 0 (initial' ())
+
+let inline save
+        (append : 'streamId -> 'token -> EncodedEvent list -> Async<'token>) =
+    fun streamId token ->
+        List.map EncodedEvent.serializeUnionByCaseItemTypeName 
+        >> append streamId token
+
+let inline create
+        (handle:'state -> 'command -> 'event list)
+        (read:'streamId -> int -> int -> Async<EncodedEvent seq*'token*int option>)
+        (append:'streamId -> 'token -> EncodedEvent list -> Async<'token>) =
+    fun streamId command ->
+        async {
+            let! token, initialState = load read streamId 
+            do! handle initialState command
+                |> save append streamId token 
+                |> Async.Ignore }

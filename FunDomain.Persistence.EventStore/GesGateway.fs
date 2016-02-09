@@ -51,9 +51,13 @@ type Store private (inner') =
     static member internal wrap connection = Store( box connection)
 
     member this.append streamId expectedVersion newEncodedEvents = 
-        let isJson, metadata = true, null
-        inner.AsyncAppendToStream streamId expectedVersion 
-            [| for e in newEncodedEvents -> EventData(Guid.NewGuid(), e.EventType, isJson, e.Data, metadata) |]
+        async {
+            let isJson, metadata = true, null
+            let! wr =
+                [| for e in newEncodedEvents -> EventData(Guid.NewGuid(), e.EventType, isJson, e.Data, metadata) |]
+                |> inner.AsyncAppendToStream streamId expectedVersion 
+            return wr.NextExpectedVersion
+        }
 
     member this.read streamId version count = async {
         let! slice = inner.AsyncReadStreamEventsForward streamId version count (*resolveLinkTos*)true
