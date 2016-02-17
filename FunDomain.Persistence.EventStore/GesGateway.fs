@@ -42,6 +42,8 @@ module private EventStoreExtensions =
             Async.AwaitTask <| this.ReadStreamEventsForwardAsync(stream, start, count, resolveLinkTos)
         member this.AsyncSubscribeToAll resolveLinkTos eventAppeared credentials =
             Async.AwaitTask <| this.SubscribeToAllAsync(resolveLinkTos, Action<_,_>(eventAppeared), null, credentials)
+        member this.SubscribeToStream streamId eventAppeared credentials =
+            this.SubscribeToStreamFrom(streamId, Nullable(), false, Action<_,_>(eventAppeared), null, null, credentials, 500)
 
 /// Wrapper yielded by create* functions with create/append functions matching FunDomain.CommandHandler requirements
 type Store private (inner') = 
@@ -66,10 +68,25 @@ type Store private (inner') =
         let events = seq { for e in slice.Events -> { EventType = e.Event.EventType; Data = e.Event.Data } }
         return events, slice.LastEventNumber, nextSliceToken }
 
+    member this.read2 streamId version count = async {
+        let! slice = inner.AsyncReadStreamEventsForward streamId version count (*resolveLinkTos*)true
+        let events = seq { for e in slice.Events -> { EventType = e.Event.EventType; Data = e.Event.Data } }
+        return events, slice.IsEndOfStream, slice.NextEventNumber }
+
     member this.subscribe (username, password) projection =
         inner.AsyncSubscribeToAll (*resolveLinkTos*)true 
             (fun _ e -> projection <| EventBatch [| { EventType = e.Event.EventType; Data = e.Event.Data } |]) 
             (SystemData.UserCredentials(username, password))
+
+    member this.subscribeStream streamId (username, password) projection =
+        inner.SubscribeToStreamFrom (streamId,Nullable(),(*resolveLinkTos*)true,
+            (fun _ e -> projection <| EventBatch [| { EventType = e.Event.EventType; Data = e.Event.Data } |]),
+            null,
+            null, (SystemData.UserCredentials(username, password)), 500)
+//    member this.subscribeStream streamId (username, password) projection =
+//        inner.AsyncSubscribeToAll (*resolveLinkTos*)true 
+//            (fun _ e -> projection <| EventBatch [| { EventType = e.Event.EventType; Data = e.Event.Data } |]) 
+//            (SystemData.UserCredentials(username, password))
 
 module GesGateway =
     let create (tcpEndpoint: IPEndPoint) = async {
