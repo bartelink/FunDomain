@@ -33,17 +33,14 @@ type DirectionMonitor() =
     member this.Post = agent.Post
     member this.CurrentDirectionOfGame gameId = gameDirections.[gameId]
 
-let createMonitorAndProjection () =
-    let monitor = DirectionMonitor()
+let establishProjection (monitor:DirectionMonitor) =
     let logger = Logger()
 
-    let projection (batch:EventBatch) =
+    fun (batch:EventBatch) ->
         let dispatchFlowEvent evt =
             monitor.Post evt
             logger.Post evt 
         batch.mapToUnion () |> Seq.iter dispatchFlowEvent
-
-    monitor,projection
 
 let fullCircuitCommands gameId = [
     StartGame { GameId=gameId; PlayerCount=4; FirstCard=red 3 }
@@ -59,3 +56,13 @@ let gameTopicId (GameId no) = sprintf "Game-%s" <| string no
 let randomGameId () =
     let gameNo = System.Random().Next()
     GameId gameNo
+
+/// Ensure we match the required signature dictated by xUnit.net
+let toFact computation : System.Threading.Tasks.Task = Async.StartAsTask computation :> _
+
+let withRetryingAndDelaying maxCount (delayMs:int) assertion =
+    for count in [ 1..maxCount ] do
+        try 
+            assertion() 
+        with _ when count <> maxCount -> 
+            System.Threading.Thread.Sleep delayMs
