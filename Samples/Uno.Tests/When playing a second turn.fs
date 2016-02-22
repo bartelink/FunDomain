@@ -2,7 +2,7 @@
 
 open Uno // UL
 open Game // direct access to our SUT
-let replay = FunDomain.Evolution.replay // Unquote breaks if you lean on the AutoOpen
+let replay = Dynamical.Evolution.replay // Unquote breaks if you lean on the AutoOpen
 
 open Xunit
 open Swensen.Unquote

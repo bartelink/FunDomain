@@ -1,6 +1,6 @@
 ﻿module FunDomain.CommandHandler
 
-let inline evolve state = Seq.fold evolve' state 
+open Dynamical
 
 let inline load 
         (read : 'streamId -> int -> int -> Async<EncodedEvent seq * 'token * int option>) 
@@ -12,11 +12,11 @@ let inline load
             let updatedState = 
                 encodedEvents
                 |> Seq.choose EncodedEvent.deserializeUnionByCaseItemTypeName<'event>
-                |> evolve currentState
+                |> Evolution.advance currentState
             match nextVersion with
             | Some minVersion -> return! fold minVersion updatedState
             | None -> return token, updatedState }
-    fold 0 (initial' ())
+    fold 0 (Evolution.initialState())
 
 let inline save
         (append : 'streamId -> 'token -> EncodedEvent list -> Async<'token>) =
@@ -27,7 +27,7 @@ let inline save
 let inline create
         (handle:'state -> 'command -> 'event list)
         (read:'streamId -> int -> int -> Async<EncodedEvent seq*'token*int option>)
-        (append:'streamId -> 'token -> EncodedEvent list -> Async<'token>) =
+        (append:'streamId -> 'token -> EncodedEvent seq -> Async<'token>) =
     fun streamId command ->
         async {
             let! token, initialState = load read streamId 

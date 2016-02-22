@@ -44,8 +44,8 @@ type PlayState = { Turn:Turn; TopCard:Card }
 type State = 
     | Initial
     | Playing of PlayState with
-    static member initial = Initial
-    member this.evolve = 
+    static member InitialState = Initial
+    member this.Evolve = 
         match this with
         | Initial -> function
             | GameStarted e -> Playing { 
