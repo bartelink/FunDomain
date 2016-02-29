@@ -75,13 +75,12 @@ module Agent =
 
 open System
 open System.Net
-open System.Threading.Tasks
 
 // Requires an EventStore 3.0 or later (with default parameters) instance to be running on the current machine 
 let createStore() = GesGateway.create <| IPEndPoint(IPAddress.Loopback, 1113)
 
 /// Ensure we match the required signature dictated by xUnit.net
-let toFact computation : Task = Async.StartAsTask computation :> _
+let toFact computation : System.Threading.Tasks.Task = Async.StartAsTask computation :> _
 
 type CountMonitor() = 
     let mutable max = 0

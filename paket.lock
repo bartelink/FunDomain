@@ -4,6 +4,7 @@ NUGET
   specs:
     EventStore.Client (3.4.0)
     FAKE (4.20.0)
+    FSharp.Control.AsyncSeq (2.0.3)
     NEventStore (5.2.0)
     Newtonsoft.Json (8.0.2)
     Unquote (3.1.1)

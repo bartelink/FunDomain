@@ -4,6 +4,7 @@ framework >= net45
 
 # Component dependencies
 nuget EventStore.Client
+nuget FSharp.Control.AsyncSeq
 nuget NEventStore
 nuget Newtonsoft.Json
 
