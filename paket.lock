@@ -2,7 +2,7 @@ FRAMEWORK: >= NET45
 NUGET
   remote: https://www.nuget.org/api/v2
   specs:
-    EventStore.Client (3.4.0)
+    EventStore.Client (3.5.0)
     FAKE (4.20.0)
     FSharp.Control.AsyncSeq (2.0.3)
     NEventStore (5.2.0)

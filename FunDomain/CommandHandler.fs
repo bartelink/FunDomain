@@ -19,7 +19,7 @@ let inline load
     fold 0 (Evolution.initialState())
 
 let inline save
-        (append : 'streamId -> 'token -> EncodedEvent list -> Async<'token>) =
+        (append : 'streamId -> 'token -> EncodedEvent seq -> Async<'token>) =
     fun streamId token ->
         List.map EncodedEvent.serializeUnionByCaseItemTypeName 
         >> append streamId token

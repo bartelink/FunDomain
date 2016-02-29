@@ -34,6 +34,6 @@ let ``Can play a circuit and consume projection using GetEventStore``() =
         fun () -> 
             let finalDirection = checkResult()
             CounterClockWise =! finalDirection
-        |> withRetryingAndDelaying 5 100
+        |> withRetryingAndDelaying 10 100
     }
     |> toFact
