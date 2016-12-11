@@ -1,9 +1,9 @@
 ﻿module FunDomain.Persistence.EventStore.GesAgent
 
-open FunDomain
 open FSharp.Control
-open System.Collections.Concurrent
+open FunDomain
 open FunDomain.Persistence.EventStore
+open System.Collections.Concurrent
 
 module Agent = 
     let receive<'msg> (inbox : MailboxProcessor<'msg>) = inbox.Receive()
@@ -39,7 +39,7 @@ let createBoundedStreamer (store : Store) stream bufferSize =
         // 'inspired by' https://gist.github.com/eulerfx/a4a29502f673f13b6a23
         use buffer = new BlockingCollection<_>(bufferSize : int)
         let inline onEvent (batch : EventBatch) = batch.mapToUnion() |> Seq.iter buffer.Add
-        use! subs = store.subscribeStream stream onEvent
+        use! sub = store.subscribeStream stream onEvent
         yield! buffer.GetConsumingEnumerable() |> AsyncSeq.ofSeq
     }
 
@@ -69,16 +69,14 @@ let createEventStreamerAgent storeEndpoint topicName dispatch =
         loop None
     Agent.start body
 
-let inline createCommandHandlerAgent storeEndpoint topic (handle : 'state -> 'command -> 'event list) = 
-    let body inbox = 
-        let rec loop state = 
-            async { 
+let inline createCommandHandlerAgent storeEndpoint topic aggregate =
+    let body inbox =
+        let rec loop state =
+            async {
                 match state with
                 | None -> 
                     let! store = GesGateway.create storeEndpoint
-                    let handler = CommandHandler.create handle
-                    let persistingHandler = handler store.read (store.appendIdempotent DetermisticGuid.ofBytes) topic
-                    return! loop <| Some persistingHandler
+                    return! CommandHandler.ofGesStoreIdempotent store aggregate topic |> Some |> loop
                 | Some persistingHandler -> let! cmd = Agent.receive inbox
                                             do! persistingHandler cmd
             }

@@ -1,6 +1,5 @@
 ﻿module FunDomain.Persistence.EventStore.Acceptance.IdExample
 
-open Dynamical
 open FunDomain
 open FunDomain.Persistence.EventStore
 open FunDomain.Persistence.Fixtures
@@ -10,49 +9,41 @@ open Xunit
 type Event = 
     | Updated of int
 
-type State = 
-    { Current : int }
-    static member InitialState = { Current = -1 }
-    member this.Evolve = 
-        function 
-        | Updated x when this.Current = x - 1 -> { this with Current = x }
-        | Updated _ as e -> failwithf "event %A not permitted in state %A" e this
+type State = { Current : int }
+let initialState = { Current = -1 }
+let evolve state = function
+    | Updated x when state.Current = x - 1 -> { state with Current = x }
+    | Updated _ as e -> failwithf "event %A not permitted in state %A" e state
 
-type Command = 
+type Command =
     | Update of int
 
-let handle = function 
+let decide = function
     | { Current = current } -> 
         function 
         | Update x when current = x -> []
         | Update x when current + 1 = x -> [ Updated x ]
         | Update _ as c -> failwithf "Command %A not permitted in State %A" c current
 
-[<AutoOpen>]
-module TestHelpers = 
-    let inline Given e = Dynamical.Evolution.replay e
-    let inline When c s = handle s c
-    let inline Then e r = r =! e
+let run = Seq.fold evolve initialState >> decide
 
 [<Fact>]
 let ``Can send 0 initially``() = 
-    Given []
-    |> When(Update 0)
-    |> Then [ Updated 0 ]
+    []
+    |> run <| Update 0
+    =! [ Updated 0 ]
 
 [<Fact>]
 let ``Can not handle non-zero initally``() = 
-    let state = Given []
-    <@ handle state <| Update 5 @>
-    |> raisesWith
-    <| (fun e -> <@ (e : exn).Message = "Command Update 5 not permitted in State -1" @>)
+    <@ [] |> run <| Update 5 @>
+    |> raisesWith <| fun e -> <@ (e : exn).Message = "Command Update 5 not permitted in State -1" @>
 
 [<Fact>]
 let ``Can handle sequenced updates``() = 
-    Given [ Updated 0
-            Updated 1 ]
-    |> When(Update 2)
-    |> Then [ Updated 2 ]
+    [   Updated 0
+        Updated 1 ]
+    |> run <| Update 2
+    =! [Updated 2]
 
 module Agent = 
     let recieve<'msg> (inbox : MailboxProcessor<'msg>) = inbox.Receive()
@@ -79,16 +70,14 @@ open System.Net
 // Requires an EventStore 3.0 or later (with default parameters) instance to be running on the current machine 
 let createStore() = GesGateway.create <| IPEndPoint(IPAddress.Loopback, 1113)
 
-/// Ensure we match the required signature dictated by xUnit.net
-let toFact computation : System.Threading.Tasks.Task = Async.StartAsTask computation :> _
-
 type CountMonitor() = 
     let mutable max = 0
     let handle _ = function 
         | Updated x -> max <- x
     let agent = Agent.start <| Agent.fold handle ()
-    member this.Post = agent.Post
-    member this.Max = max
+    member __.Post = agent.Post
+    member __.Max = max
+let idAggregate = evolve, initialState, decide
 
 module Dispatcher = 
     let forStreamProjector handler (batch : EventBatch) = batch.mapToUnion() |> Seq.iter handler
@@ -103,12 +92,10 @@ module Subscriptions =
             let monitor = CountMonitor()
             let dispatcher = Dispatcher.forGlobalProjector (fun s e -> monitor.Post e)
             use! sub = store.subscribeAll ("admin", "changeit") dispatcher
-            let handle = CommandHandler.create handle store.read store.append topic
+            let handle = CommandHandler.ofGesStore store idAggregate topic
             do! handle <| Update 0
             do! handle <| Update 1
-            (fun () -> monitor.Max =! 1) |> withRetryingAndDelaying 5 100
-        }
-        |> toFact
+            (fun () -> monitor.Max =! 1) |> withRetryingAndDelaying 5 100 } |> Async.StartAsTask
     
     [<Fact>]
     let ``Can manage updates with GES using local subscription``() = 
@@ -118,39 +105,40 @@ module Subscriptions =
             let monitor = CountMonitor()
             let dispatcher = Dispatcher.forStreamProjector monitor.Post
             use! sub = store.subscribeStream topic dispatcher
-            let handle = CommandHandler.create handle store.read store.append topic
+            let handle = CommandHandler.ofGesStore store idAggregate topic
             do! handle <| Update 0
             do! handle <| Update 1
-            (fun () -> monitor.Max =! 1) |> withRetryingAndDelaying 5 100
-        }
-        |> toFact
+            (fun () -> monitor.Max =! 1) |> withRetryingAndDelaying 5 100 } |> Async.StartAsTask
 
 module ParallelUpdates = 
     // See also CommandHandler.create
     module CommandHandlerIdempotent = 
         open EventStore.ClientAPI.Exceptions
         
-        let inline create (handle : 'state -> 'command -> 'event list) 
-                   (read : 'streamId -> int -> int -> Async<EncodedEvent seq * 'token * int option>) 
-                   (appendIdempotent : (byte [] -> Guid) -> 'streamId -> 'token -> EncodedEvent seq -> Async<'token>) 
-                   (determisticGuidOfBytes : byte [] -> Guid) = 
-            let saveEvents streamId token state events = 
+        let inline create
+            (read : 'streamId -> int -> int -> Async<EncodedEvent seq * 'token * int option>)
+            (appendIdempotent : (byte [] -> Guid) -> 'streamId -> 'token -> EncodedEvent seq -> Async<'token>)
+            (determisticGuidOfBytes : byte [] -> Guid)
+            (evolve : 'state -> 'event -> 'state)
+            (initialState : 'state)
+            (decide : 'state -> 'command -> 'event list) =
+            let saveEvents streamId token (state : 'state) events = 
                 async { 
                     try 
                         let! token' = events 
                                       |> CommandHandler.save (appendIdempotent determisticGuidOfBytes) streamId token
-                        let state' = Evolution.advance state events
+                        let state' = Seq.fold evolve state events
                         return Some(token', state')
                     with :? AggregateException as e when (e.Flatten().InnerException :? WrongExpectedVersionException) -> 
                         return None
                 }
-            fun streamId (decide : 'state -> 'command) bookmark -> 
+            fun streamId (interpret : 'state -> 'command) bookmark -> 
                 async { 
                     let! (token, state) = match bookmark with
-                                          | None -> CommandHandler.load read streamId
+                                          | None -> CommandHandler.load read evolve initialState streamId
                                           | Some bookmark -> bookmark |> async.Return
-                    let command = decide state
-                    let events = handle state command
+                    let command = interpret state
+                    let events = decide state command
                     if List.isEmpty events then return None
                     else return! events |> saveEvents streamId token state
                 }
@@ -160,18 +148,18 @@ module ParallelUpdates =
             use! store = createStore()
             let dispatcher = Dispatcher.forStreamProjector monitor.Post
             use! sub = store.subscribeStream topic dispatcher
-            let decide ({ Current = current } as state) = 
+            let handle =
+                CommandHandlerIdempotent.create store.read store.appendIdempotent DetermisticGuid.ofBytes evolve initialState decide topic
+            let interpret { Current = current } = 
                 let incrementOrMaybeNot = (current + r.Next(2))
                 Update incrementOrMaybeNot
             
-            let handle = 
-                CommandHandlerIdempotent.create handle store.read store.appendIdempotent DetermisticGuid.ofBytes topic
-            let! b1 = handle decide None
-            let! b2 = handle decide b1
-            let! b3 = handle decide b2
-            let! b4 = handle decide b3
-            let! b5 = handle decide b4
-            let! b6 = handle decide b5
+            let! b1 = handle interpret None
+            let! b2 = handle interpret b1
+            let! b3 = handle interpret b2
+            let! b4 = handle interpret b3
+            let! b5 = handle interpret b4
+            let! b6 = handle interpret b5
             let maxSaved = 
                 [ b1; b2; b3; b4; b5; b6 ]
                 |> List.map (Option.map (fun (_, { Current = current }) -> current))
@@ -180,7 +168,7 @@ module ParallelUpdates =
         }
     
     [<Fact>]
-    let ``Can manage parallel updates with GES``() = 
+    let ``Can manage parallel updates with GES``() =
         async { 
             let actRandom = act <| Random()
             let topic = string <| Guid.NewGuid()
@@ -192,6 +180,4 @@ module ParallelUpdates =
             fun () -> 
                 let max1, max2 = monitor1.Max, monitor2.Max
                 defaultArg (max current1 current2) 42 =! max max1 max2
-            |> withRetryingAndDelaying 10 100
-        }
-        |> toFact
+            |> withRetryingAndDelaying 10 100 } |> Async.StartAsTask

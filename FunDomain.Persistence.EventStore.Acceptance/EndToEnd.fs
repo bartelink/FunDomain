@@ -1,27 +1,23 @@
 ﻿module FunDomain.Persistence.EventStore.Acceptance.EndToEnd
 
-open FunDomain.Persistence.Fixtures // fullGameCommands, gameTopicId, randomGameId, establishProjection, toFact
-open Uno // Card Builders
-open Uno.Game // Commands, handle
-open FunDomain // CommandHandler
 open FunDomain.Persistence.EventStore // Store
-open Xunit
+open FunDomain.Persistence.Fixtures // fullGameCommands, gameTopicId, randomGameId, establishProjection
 open Swensen.Unquote
+open Uno // Card Builders
+open Uno.Game // Commands, aggregate
+open Xunit
 
-let playCircuit (store : Store) = 
-    async { 
-        let domainHandler = CommandHandler.create handle
-        let monitor = DirectionMonitor()
-        let projection = establishProjection monitor
-        let persistingHandler = domainHandler store.read store.append
-        let gameId = randomGameId()
-        let topicId = gameTopicId gameId
-        use! sub = store.subscribeStream topicId projection
-        for action in fullCircuitCommands gameId do
-            printfn "Processing %A against Stream %A" action topicId
-            do! action |> persistingHandler topicId
-        return fun () -> monitor.CurrentDirectionOfGame gameId
-    }
+let playCircuit (store : Store) = async { 
+    let monitor = DirectionMonitor()
+    let projection = establishProjection monitor
+    let gameId = randomGameId()
+    let topicId = gameTopicId gameId
+    let handle = CommandHandler.ofGesStore store aggregate topicId
+    use! sub = store.subscribeStream topicId projection
+    for cmd in fullCircuitCommands gameId do
+        printfn "Processing %A against Stream %A" cmd topicId
+        do! handle cmd
+    return fun () -> monitor.CurrentDirectionOfGame gameId }
 
 // Requires an EventStore 3.0 or later (with default parameters) instance to be running on the current machine 
 let createStore() = GesGateway.create <| System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 1113)
@@ -34,6 +30,4 @@ let ``Can play a circuit and consume projection using GetEventStore``() =
         fun () -> 
             let finalDirection = checkResult()
             CounterClockWise =! finalDirection
-        |> withRetryingAndDelaying 10 100
-    }
-    |> toFact
+        |> withRetryingAndDelaying 10 100 } |> Async.StartAsTask

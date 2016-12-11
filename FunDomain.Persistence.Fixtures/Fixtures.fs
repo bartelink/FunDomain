@@ -1,8 +1,8 @@
 ﻿module FunDomain.Persistence.Fixtures
 
-open Uno // Card Builders
-open Uno.Game // Commands, handle
 open FunDomain // CachingEventBatch
+open Uno // Card Builders
+open Uno.Game // Commands, aggregate
 
 type FlowEvents =
     | DirectionChanged of DirectionChanged
@@ -56,9 +56,6 @@ let gameTopicId (GameId no) = sprintf "Game-%s" <| string no
 let randomGameId () =
     let gameNo = System.Random().Next()
     GameId gameNo
-
-/// Ensure we match the required signature dictated by xUnit.net
-let toFact computation : System.Threading.Tasks.Task = Async.StartAsTask computation :> _
 
 let withRetryingAndDelaying maxCount (delayMs:int) assertion =
     for count in [ 1..maxCount ] do

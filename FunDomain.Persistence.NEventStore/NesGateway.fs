@@ -129,3 +129,7 @@ module NesGateway =
                 .Compress()
             .Build()
         |> createFromStore
+
+module CommandHandler =
+    let ofNes (store : Store) =
+        CommandHandler.create { read = store.read; append = store.append }

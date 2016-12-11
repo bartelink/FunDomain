@@ -56,7 +56,6 @@
   </Target>
   -->
   <ItemGroup>
-    <Compile Include="Evolution.fs" />
     <Compile Include="Serialization.fs">
       <Link>Serialization.fs</Link>
     </Compile>

@@ -97,3 +97,9 @@ module GesGateway =
             do! storeConn.AsyncConnect()
             return storeConn |> Store.wrap
         }
+
+module CommandHandler =
+    let ofGesStore (store : Store) =
+        CommandHandler.create { read = store.read; append = store.append }
+    let ofGesStoreIdempotent (store : Store) =
+        CommandHandler.create { read = store.read; append = store.appendIdempotent DetermisticGuid.ofBytes }

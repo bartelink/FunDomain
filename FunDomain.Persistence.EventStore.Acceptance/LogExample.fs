@@ -13,23 +13,23 @@ type Event =
 type LogState = 
     | Initial
     | Running of started : DateTime
-    static member InitialState = Initial
-    member this.Evolve = 
-        match this with
-        | Initial -> function 
-            | Started date -> Running date
-        | Running s -> function 
-            | Started e -> e |> failwithf "%A but got %A" this
+let initialState = Initial
+let evolve = function
+    | Initial -> function 
+        | Started date -> Running date
+    | (Running s) as self -> function 
+        | Started e -> e |> failwithf "%A but got %A" self
 
 type Command = 
     | Start of DateTime
 
-let handle = 
-    function 
-    | Initial as s -> function 
+let decide = function
+    | Initial -> function
         | Start date -> [ Started date ]
     | Running s -> function 
         | Start date -> date |> failwithf "%A but got %A" s
+
+let aggregate = evolve, initialState, decide
 
 [<Fact>]
 let CanRountrip() = 
@@ -37,12 +37,12 @@ let CanRountrip() =
     let topic = string <| Guid.NewGuid()
     let mutable success = false
     let inputDate = DateTime.Today
-    
+
     let dispatch = 
         function 
         | EventAppeared(Started date) -> success <- date = inputDate
-    
+
     let _ = createEventStreamerAgent storeEndpoint topic dispatch
-    let handler = createCommandHandlerAgent storeEndpoint topic handle
-    handler.Post <| Start inputDate
+    let handle = createCommandHandlerAgent storeEndpoint topic aggregate
+    handle.Post <| Start inputDate
     (fun () -> success =! true) |> withRetryingAndDelaying 50 100
