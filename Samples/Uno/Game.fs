@@ -22,21 +22,87 @@ type Event =
     | DirectionChanged of DirectionChanged
 
 ////////////////////////////////////////////////////////////////////////////////
-// State / evolution function for folding events into same
+// Inferences per Event
+
+type Inference =
+    | Started of firstPlayer:int * playerCount:int * card:Card
+    | Played of Card
+    | NextIs of int
+    | DirectionBecomes of Direction
+
+let infer : Event -> Inference list = function
+    | GameStarted e ->      [Started (e.FirstPlayer, e.PlayerCount, e.FirstCard)]
+    | CardPlayed e ->       [Played e.Card; NextIs e.NextPlayer]
+    | PlayedAtWrongTurn _
+    | PlayedWrongCard _ ->  []
+    | DirectionChanged e -> [DirectionBecomes e.Direction]
+
+////////////////////////////////////////////////////////////////////////////////
+// State / Evolution function for folding inference into same
 
 type Turn =
     {   Player : int
         PlayerCount : int
         Direction : Direction }
 
-/// Type representing current player turn; All operations should be encapsulated
+type State =
+    {   Turn : Turn
+        TopCard : Card }
+
+let evolve': State option -> Inference -> State option = function
+    | None ->
+        function
+        | Started (firstPlayer=firstPlayer; playerCount=playerCount; card=card) ->
+            {   TopCard = card
+                Turn = {    Turn.Player = firstPlayer
+                            PlayerCount = playerCount
+                            Direction = ClockWise } }
+        | _ -> failwith "malformed event stream; expecting Start"
+        >> Some
+    | Some ({Turn = t} as s) ->
+        function
+        | Started _ -> failwith "illegal restart"
+        | Played c ->
+            { s with TopCard = c }
+        | DirectionBecomes d ->
+            { s with Turn = { t with Direction = d } }
+        | NextIs p ->
+            if p < 0 || p >= t.PlayerCount then
+                invalidArg "player" "The player value should be between 0 and player count"
+            { s with Turn = { t with Player = p } }
+        >> Some
+let evolve s = infer >> Seq.fold evolve' s
+
+////////////////////////////////////////////////////////////////////////////////
+// Decision type and decision function
+
+type Context = Context of game:GameId * player:int
+type Decision =
+    | StartForward of ctx: Context * card: Card * playerCount:int
+    | StartBackward of ctx: Context * card: Card * playerCount:int
+    | Play of Context * card:Card * nextTurn: Turn
+    | PlayAndReverse of Context * card:Card * nextTurn: Turn
+    | WrongCard of Context * card: Card
+    | OutOfTurn of Context * card: Card
+
+let interpret: Decision -> Event list = function
+    | StartForward (Context (game, player), card, playerCount) ->
+        [   GameStarted { GameId = game; FirstPlayer = player; PlayerCount = playerCount; FirstCard = card } ]
+    | StartBackward (Context (game, player), card, playerCount) ->
+        [   GameStarted { GameId = game; FirstPlayer = player; PlayerCount = playerCount; FirstCard = card }
+            DirectionChanged { GameId = game; Direction = Direction.CounterClockWise } ]
+    | Play (Context (game, player), card, nextTurn) ->
+        [   CardPlayed { GameId = game; Player = player; Card = card; NextPlayer = nextTurn.Player } ]
+    | PlayAndReverse (Context (game, player), card, nextTurn) ->
+        [   CardPlayed { GameId = game; Player = player; Card = card; NextPlayer = nextTurn.Player }
+            DirectionChanged { GameId = game; Direction = nextTurn.Direction } ]
+    | WrongCard (Context (game, player), card) ->
+        [   PlayedWrongCard { GameId = game; Player = player; Card = card } ]
+    | OutOfTurn (Context (game, player), card) ->
+        [   PlayedAtWrongTurn { GameId = game; Player = player; Card = card } ]
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Turn =
-    let start player count =
-        {   Player = player
-            PlayerCount = count
-            Direction = ClockWise }
-
     let next turn =
         let selectNextPlayer turn =
             match turn.Direction with
@@ -52,45 +118,6 @@ module Turn =
         | ClockWise -> { turn with Direction = CounterClockWise }
         | CounterClockWise -> { turn with Direction = ClockWise }
 
-    let withPlayer player turn =
-        if player < 0 || player >= turn.PlayerCount then 
-            invalidArg "player" "The player value should be between 0 and player count"
-        { turn with Player = player }
-
-    let withDirection direction turn =
-        { turn with Turn.Direction = direction }
-
-type State =
-    {   Turn : Turn
-        TopCard : Card }
-
-let evolve : State option -> Event -> State option =
-    let beganWith = function
-        | GameStarted e ->
-            {   Turn = Turn.start e.FirstPlayer e.PlayerCount
-                TopCard = e.FirstCard }
-        | _ -> failwith "malformed event stream; expecting GameStarted"
-    let continuedWith s = function
-        | CardPlayed e ->
-            {   Turn = s.Turn |> Turn.withPlayer e.NextPlayer
-                TopCard = e.Card }
-        | DirectionChanged e ->
-            { s with Turn = s.Turn |> Turn.withDirection e.Direction }
-        | PlayedAtWrongTurn _
-        | PlayedWrongCard _ ->
-            s
-        | GameStarted _ -> failwith "illegal restart"
-    function
-    | None -> beganWith >> Some
-    | Some state -> continuedWith state >> Some
-
-////////////////////////////////////////////////////////////////////////////////
-// Operations of the Game aggregate
-
-type Command =
-    | StartGame of StartGame
-    | PlayCard of PlayCard
-
 let (|Color|) = function
     | DigitCard (_,c) 
     | KickBack c 
@@ -105,43 +132,32 @@ let (|SameValue|_|) = function
     | KickBack _, KickBack _ -> Some ()
     | _ -> None
 
-let decide : State option -> Command -> Event list = function
+type Command =
+    | StartGame of StartGame
+    | PlayCard of PlayCard
+
+let decide' : State option -> Command -> Decision = function
     | None -> function
         | StartGame c ->
             if c.PlayerCount <= 2 then invalidArg "playerCount" "There should be at least 3 players"
-
-            let gameStartedWithPlayer firstPlayer = 
-                GameStarted { GameId = c.GameId; PlayerCount = c.PlayerCount; FirstCard = c.FirstCard; FirstPlayer = firstPlayer }
-
+            let ctx nextPlayer = Context (c.GameId, nextPlayer)
             match c.FirstCard with
-            | KickBack _ ->
-                [   gameStartedWithPlayer 0 
-                    DirectionChanged { GameId = c.GameId; Direction = CounterClockWise } ]
-            | Skip _ -> [ gameStartedWithPlayer 1 ]
-            | _ -> [ gameStartedWithPlayer 0]
+            | KickBack _ ->     StartBackward (ctx 0, c.FirstCard, c.PlayerCount)
+            | Skip _ ->         StartForward (ctx 1, c.FirstCard, c.PlayerCount)
+            | _ ->              StartForward (ctx 0, c.FirstCard, c.PlayerCount)
         | _ -> invalidOp "The game needs to be started first"
     | Some state -> function
         | StartGame _ -> invalidOp "The game cannot be started more than once"
         | PlayCard c when state.Turn.Player <> c.Player ->
-            [ PlayedAtWrongTurn { GameId = c.GameId; Player = c.Player; Card = c.Card } ]
+            OutOfTurn (Context (c.GameId, c.Player), c.Card)
         | PlayCard c ->
+            let ctx = Context (c.GameId, c.Player)
             match c.Card, state.TopCard with
             | SameColor _ 
             | SameValue ->
-                let cardPlayed nextPlayer = 
-                    CardPlayed { GameId = c.GameId; Player = c.Player; Card = c.Card; NextPlayer = nextPlayer }
-
                 match c.Card with
-                | KickBack _ ->
-                    let nextTurn = state.Turn |> Turn.reverse |> Turn.next
-
-                    [   cardPlayed nextTurn.Player
-                        DirectionChanged { GameId = c.GameId; Direction = nextTurn.Direction } ]
-                | Skip _ ->
-                    let nextTurn = state.Turn |> Turn.skip
-
-                    [ cardPlayed nextTurn.Player ]
-                | _ ->
-                    let nextTurn = state.Turn |> Turn.next
-                    [ cardPlayed nextTurn.Player ]
-            | _ -> [ PlayedWrongCard { GameId = c.GameId; Player = c.Player; Card = c.Card } ]
+                | KickBack _ -> PlayAndReverse (ctx, c.Card, state.Turn |> Turn.reverse |> Turn.next)
+                | Skip _ ->     Play (ctx, c.Card, state.Turn |> Turn.skip)
+                | _ ->          Play (ctx, c.Card, state.Turn |> Turn.next)
+            | _ ->              WrongCard (ctx, c.Card)
+let decide s = decide' s >> interpret
