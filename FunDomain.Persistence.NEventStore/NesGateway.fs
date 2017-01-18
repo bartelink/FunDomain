@@ -131,5 +131,5 @@ module NesGateway =
         |> createFromStore
 
 module CommandHandler =
-    let ofNes (store : Store) =
-        CommandHandler.create { read = store.read; append = store.append }
+    let ofNes (store : Store) streamId =
+        CommandHandler.create { read = store.read streamId; append = store.append streamId }

@@ -10,26 +10,20 @@ open Xunit
 type Event = 
     | Started of started : DateTime
 
-type LogState = 
-    | Initial
-    | Running of started : DateTime
-let initialState = Initial
 let evolve = function
-    | Initial -> function 
-        | Started date -> Running date
-    | (Running s) as self -> function 
-        | Started e -> e |> failwithf "%A but got %A" self
+    | None -> function 
+        | Started date -> Some date
+    | Some s -> function 
+        | Started e -> e |> failwithf "%A but got %A" s
 
 type Command = 
     | Start of DateTime
 
 let decide = function
-    | Initial -> function
+    | None -> function
         | Start date -> [ Started date ]
-    | Running s -> function 
+    | Some s -> function 
         | Start date -> date |> failwithf "%A but got %A" s
-
-let aggregate = evolve, initialState, decide
 
 [<Fact>]
 let CanRountrip() = 
@@ -43,6 +37,6 @@ let CanRountrip() =
         | EventAppeared(Started date) -> success <- date = inputDate
 
     let _ = createEventStreamerAgent storeEndpoint topic dispatch
-    let handle = createCommandHandlerAgent storeEndpoint topic aggregate
+    let handle = createCommandHandlerAgent storeEndpoint topic evolve decide
     handle.Post <| Start inputDate
     (fun () -> success =! true) |> withRetryingAndDelaying 50 100

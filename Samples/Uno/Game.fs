@@ -1,8 +1,18 @@
 ﻿module Uno.Game
 
-type Command =
-    | StartGame of StartGame
-    | PlayCard of PlayCard
+////////////////////////////////////////////////////////////////////////////////
+// Event Contracts
+
+type Direction =
+    | ClockWise
+    | CounterClockWise
+
+// Events
+type GameStarted = { GameId:GameId; PlayerCount:int; FirstCard:Card; FirstPlayer:int }
+type CardPlayed = { GameId:GameId; Player:int; Card:Card; NextPlayer:int }
+type PlayedAtWrongTurn = { GameId:GameId; Player:int; Card:Card }
+type PlayedWrongCard = { GameId:GameId; Player:int; Card:Card }
+type DirectionChanged = { GameId:GameId; Direction:Direction }
 
 type Event =
     | GameStarted of GameStarted
@@ -10,6 +20,9 @@ type Event =
     | PlayedAtWrongTurn of PlayedAtWrongTurn
     | PlayedWrongCard of PlayedWrongCard
     | DirectionChanged of DirectionChanged
+
+////////////////////////////////////////////////////////////////////////////////
+// State / evolution function for folding events into same
 
 type Turn =
     {   Player : int
@@ -47,9 +60,6 @@ module Turn =
     let withDirection direction turn =
         { turn with Turn.Direction = direction }
 
-////////////////////////////////////////////////////////////////////////////////
-// State / evolution function for folding events into same
-
 type State =
     {   Turn : Turn
         TopCard : Card }
@@ -76,6 +86,10 @@ let evolve : State option -> Event -> State option =
 
 ////////////////////////////////////////////////////////////////////////////////
 // Operations of the Game aggregate
+
+type Command =
+    | StartGame of StartGame
+    | PlayCard of PlayCard
 
 let (|Color|) = function
     | DigitCard (_,c) 
@@ -131,5 +145,3 @@ let decide : State option -> Command -> Event list = function
                     let nextTurn = state.Turn |> Turn.next
                     [ cardPlayed nextTurn.Player ]
             | _ -> [ PlayedWrongCard { GameId = c.GameId; Player = c.Player; Card = c.Card } ]
-
-let aggregate = evolve, None, decide

@@ -44,7 +44,7 @@ type Store private (inner') =
     let dispatchTo projection = (fun _ e -> projection <| batchEvent e)
     let dispatchWithStreamIdTo projection = (fun s e -> projection s <| batchEvent e)
     
-    let appendWithIdGenerator generator streamId expectedVersion newEncodedEvents = 
+    let appendWithIdGenerator streamId generator expectedVersion newEncodedEvents = 
         async { 
             let isJson, metadata = true, null
             let! wr = [| for e in newEncodedEvents -> EventData(generator e.Data, e.EventType, isJson, e.Data, metadata) |]
@@ -64,9 +64,9 @@ type Store private (inner') =
     
     static member internal wrap connection = new Store(box connection)
     
-    member this.append = 
+    member this.append streamId = 
         let ignoreTheData _ = Guid.NewGuid()
-        appendWithIdGenerator ignoreTheData
+        appendWithIdGenerator streamId ignoreTheData
     
     member this.appendIdempotent = appendWithIdGenerator
     
@@ -99,7 +99,7 @@ module GesGateway =
         }
 
 module CommandHandler =
-    let ofGesStore (store : Store) =
-        CommandHandler.create { read = store.read; append = store.append }
-    let ofGesStoreIdempotent (store : Store) =
-        CommandHandler.create { read = store.read; append = store.appendIdempotent DetermisticGuid.ofBytes }
+    let ofGesStore (store : Store) streamId =
+        CommandHandler.create { read = store.read streamId; append = store.append streamId }
+    let ofGesStoreIdempotent (store : Store) streamId =
+        CommandHandler.create { read = store.read streamId; append = store.appendIdempotent streamId DetermisticGuid.ofBytes }

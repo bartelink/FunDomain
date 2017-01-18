@@ -2,17 +2,16 @@
 
 // Reading
 
-type StreamReader<'streamId,'token> = 'streamId -> int -> int -> Async<EncodedEvent seq * 'token * int option>
+type StreamReader<'token> = int -> int -> Async<EncodedEvent seq * 'token * int option>
 
-let inline load 
-        (read               : StreamReader<'streamId, 'token>)
+let inline load
+        (read               : StreamReader<'token>)
         (evolve             : 'state -> 'event -> 'state)
-        (initialState       : 'state)
-        topicId             : Async<'token*'state> = 
+        (initialState       : 'state) : Async<'token*'state> =
     let rec fold version currentState = 
         async { 
             let sliceSize = 500
-            let! encodedEvents, token, nextVersion = read topicId version sliceSize
+            let! encodedEvents, token, nextVersion = read version sliceSize
             let updatedState = 
                 encodedEvents
                 |> Seq.choose EncodedEvent.deserializeUnionByCaseItemTypeName<'event>
@@ -24,24 +23,23 @@ let inline load
 
 // Appending
 
-type StreamAppender<'streamId,'token> = 'streamId -> 'token -> EncodedEvent seq -> Async<'token>
+type StreamAppender<'token> = 'token -> EncodedEvent seq -> Async<'token>
 
-let inline save (append : StreamAppender<'streamId,'token>) (streamId : 'streamId) (token : 'token) =
+let inline save (append : StreamAppender<'token>) (token : 'token) =
     List.map EncodedEvent.serializeUnionByCaseItemTypeName
-    >> append streamId token
+    >> append token
 
 // Deciding
 
-type Streamer<'streamId,'token> =
-    {   read                : StreamReader<'streamId,'token>
-        append              : StreamAppender<'streamId,'token> }
+type Streamer<'token> =
+    {   read                : StreamReader<'token>
+        append              : StreamAppender<'token> }
 
 let inline create
         { read = read; append = append }
-        (   (evolve         : 'state -> 'event -> 'state),
-            (initialState   : 'state),
-            (decide         : 'state -> 'command -> 'event list))
-        streamId command = async {
-    let! token, initialState = load read evolve initialState streamId
+        (evolve         : 'state option -> 'event -> 'state option)
+        (decide         : 'state option -> 'command -> 'event list)
+        command = async {
+    let! token, initialState = load read evolve None
     let decision = decide initialState command
-    do! save append streamId token decision |> Async.Ignore }
+    do! save append token decision |> Async.Ignore }

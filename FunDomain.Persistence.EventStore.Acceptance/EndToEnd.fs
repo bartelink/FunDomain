@@ -12,7 +12,7 @@ let playCircuit (store : Store) = async {
     let projection = establishProjection monitor
     let gameId = randomGameId()
     let topicId = gameTopicId gameId
-    let handle = CommandHandler.ofGesStore store aggregate topicId
+    let handle = CommandHandler.ofGesStore store topicId evolve decide 
     use! sub = store.subscribeStream topicId projection
     for cmd in fullCircuitCommands gameId do
         printfn "Processing %A against Stream %A" cmd topicId

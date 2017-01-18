@@ -13,18 +13,7 @@ type Card =
     | KickBack of Color:Color
     | Skip of Color:Color
 
-type Direction =
-    | ClockWise
-    | CounterClockWise
-
 type GameId = GameId of int
-
-// Events
-type GameStarted = { GameId:GameId; PlayerCount:int; FirstCard:Card; FirstPlayer:int }
-type CardPlayed = { GameId:GameId; Player:int; Card:Card; NextPlayer:int }
-type PlayedAtWrongTurn = { GameId:GameId; Player:int; Card:Card }
-type PlayedWrongCard = { GameId:GameId; Player:int; Card:Card }
-type DirectionChanged = { GameId:GameId; Direction:Direction }
 
 // Commands
 type StartGame = { GameId:GameId; PlayerCount:int; FirstCard:Card }

@@ -69,16 +69,17 @@ let createEventStreamerAgent storeEndpoint topicName dispatch =
         loop None
     Agent.start body
 
-let inline createCommandHandlerAgent storeEndpoint topic aggregate =
+let inline createCommandHandlerAgent storeEndpoint topic evolve decide =
     let body inbox =
         let rec loop state =
             async {
                 match state with
                 | None -> 
                     let! store = GesGateway.create storeEndpoint
-                    return! CommandHandler.ofGesStoreIdempotent store aggregate topic |> Some |> loop
-                | Some persistingHandler -> let! cmd = Agent.receive inbox
-                                            do! persistingHandler cmd
+                    return! CommandHandler.ofGesStoreIdempotent store topic evolve decide |> Some |> loop
+                | Some persistingHandler ->
+                    let! cmd = Agent.receive inbox
+                    do! persistingHandler cmd
             }
         loop None
     Agent.start body
