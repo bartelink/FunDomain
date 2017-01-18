@@ -11,39 +11,41 @@ type Event =
     | PlayedWrongCard of PlayedWrongCard
     | DirectionChanged of DirectionChanged
 
-/// Type representing current player turn; All operations should be encapsulated
 type Turn =
     {   Player : int
         PlayerCount : int
         Direction : Direction }
 
-    static member Start player count =
+/// Type representing current player turn; All operations should be encapsulated
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Turn =
+    let start player count =
         {   Player = player
             PlayerCount = count
             Direction = ClockWise }
 
-    member turn.Next = 
-        let selectNextPlayer = function 
+    let next turn =
+        let selectNextPlayer turn =
+            match turn.Direction with
             | ClockWise -> (turn.Player + 1) % turn.PlayerCount
             | CounterClockWise -> // the + count is here to avoid having negative result
                 (turn.Player - 1 + turn.PlayerCount) % turn.PlayerCount
-        { turn with Player = selectNextPlayer turn.Direction }
-    member turn.Skip =
-        turn.Next.Next
-    member turn.Reverse =
-        { turn with Direction = turn.Direction.Reverse }
+        { turn with Turn.Player = selectNextPlayer turn }
 
-    member turn.WithDirection direction =
-        { turn with Direction = direction }
-    member turn.WithPlayer player =
+    let skip = next >> next
+
+    let reverse turn = 
+        match turn.Direction with
+        | ClockWise -> { turn with Direction = CounterClockWise }
+        | CounterClockWise -> { turn with Direction = ClockWise }
+
+    let withPlayer player turn =
         if player < 0 || player >= turn.PlayerCount then 
             invalidArg "player" "The player value should be between 0 and player count"
         { turn with Player = player }
-and Direction with
-    member this.Reverse =
-        match this with
-        | ClockWise -> CounterClockWise
-        | CounterClockWise -> ClockWise 
+
+    let withDirection direction turn =
+        { turn with Turn.Direction = direction }
 
 ////////////////////////////////////////////////////////////////////////////////
 // State / evolution function for folding events into same
@@ -55,15 +57,15 @@ type State =
 let evolve : State option -> Event -> State option =
     let beganWith = function
         | GameStarted e ->
-            {   Turn = Turn.Start e.FirstPlayer e.PlayerCount
+            {   Turn = Turn.start e.FirstPlayer e.PlayerCount
                 TopCard = e.FirstCard }
         | _ -> failwith "malformed event stream; expecting GameStarted"
     let continuedWith s = function
         | CardPlayed e ->
-            {   Turn = s.Turn.WithPlayer e.NextPlayer
+            {   Turn = s.Turn |> Turn.withPlayer e.NextPlayer
                 TopCard = e.Card }
         | DirectionChanged e ->
-            { s with Turn = s.Turn.WithDirection e.Direction }
+            { s with Turn = s.Turn |> Turn.withDirection e.Direction }
         | PlayedAtWrongTurn _
         | PlayedWrongCard _ ->
             s
@@ -117,16 +119,16 @@ let decide : State option -> Command -> Event list = function
 
                 match c.Card with
                 | KickBack _ ->
-                    let nextTurn = state.Turn.Reverse.Next
+                    let nextTurn = state.Turn |> Turn.reverse |> Turn.next
 
                     [   cardPlayed nextTurn.Player
                         DirectionChanged { GameId = c.GameId; Direction = nextTurn.Direction } ]
                 | Skip _ ->
-                    let nextTurn = state.Turn.Skip
+                    let nextTurn = state.Turn |> Turn.skip
 
                     [ cardPlayed nextTurn.Player ]
                 | _ ->
-                    let nextTurn = state.Turn.Next
+                    let nextTurn = state.Turn |> Turn.next
                     [ cardPlayed nextTurn.Player ]
             | _ -> [ PlayedWrongCard { GameId = c.GameId; Player = c.Player; Card = c.Card } ]
 
